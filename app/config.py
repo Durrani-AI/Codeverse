@@ -4,8 +4,10 @@ All values can be overridden through environment variables or a .env file.
 """
 
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from typing import List
 from functools import lru_cache
+import json
 
 
 class Settings(BaseSettings):
@@ -26,6 +28,27 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3001",
         "http://127.0.0.1:5173",
     ]
+
+    @field_validator("ALLOWED_ORIGINS", mode="before")
+    @classmethod
+    def parse_allowed_origins(cls, v):
+        """Accept JSON array string, comma-separated string, or plain string."""
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            v = v.strip()
+            # Try JSON first: '["http://...", "http://..."]'
+            if v.startswith("["):
+                try:
+                    return json.loads(v)
+                except json.JSONDecodeError:
+                    pass
+            # Comma-separated: "http://a.com,http://b.com"
+            if "," in v:
+                return [s.strip() for s in v.split(",") if s.strip()]
+            # Single value: "*" or "https://myapp.vercel.app"
+            return [v] if v else []
+        return v
 
     # ── Database ──────────────────────────────────────────────────────────────
     DATABASE_URL: str = "sqlite+aiosqlite:///./interview_platform.db"
