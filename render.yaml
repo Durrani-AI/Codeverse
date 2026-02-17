@@ -1,0 +1,35 @@
+# ─── Render Blueprint – auto-provisions backend + database ─────────────────
+# Deploy: connect your GitHub repo to Render → it reads this file automatically.
+
+databases:
+  - name: interview-db
+    plan: free
+    databaseName: interview_platform
+    user: interview_user
+
+services:
+  - type: web
+    name: ai-interview-backend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: AI_PROVIDER
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false                   # you'll set this manually in Render dashboard
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: DATABASE_URL
+        fromDatabase:
+          name: interview-db
+          property: connectionString   # Render auto-fills this
+      - key: SECRET_KEY
+        generateValue: true            # Render generates a random secret
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_ORIGINS
+        sync: false                   # set after Vercel deploy (your frontend URL)
+      - key: PYTHON_VERSION
+        value: "3.13.0"

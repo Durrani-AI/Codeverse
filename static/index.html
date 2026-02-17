@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Technical Interviewer</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- ─── Top Nav ─── -->
+    <nav id="navbar">
+        <div class="nav-brand">&#x1F916; AI Interviewer</div>
+        <div class="nav-links" id="nav-links">
+            <a href="#" data-page="dashboard" class="nav-link active">Dashboard</a>
+            <a href="#" data-page="new-interview" class="nav-link">New Interview</a>
+            <a href="#" data-page="history" class="nav-link">History</a>
+            <a href="#" data-page="analytics" class="nav-link">Analytics</a>
+        </div>
+        <div class="nav-right" id="nav-right">
+            <span id="nav-user"></span>
+            <button id="btn-logout" class="btn btn-sm btn-outline" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <!-- ─── Auth Page (Login / Register) ─── -->
+    <div id="page-auth" class="page active">
+        <div class="auth-container">
+            <h1>&#x1F916; AI Technical Interviewer</h1>
+            <p class="subtitle">Practice coding, behavioral, and system design interviews with AI</p>
+
+            <div class="tab-group">
+                <button class="tab active" onclick="switchAuthTab('login')">Login</button>
+                <button class="tab" onclick="switchAuthTab('register')">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="form-login" class="auth-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="login-username">Username</label>
+                    <input type="text" id="login-username" required placeholder="Your username">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" required placeholder="Your password">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full" id="btn-login">Login</button>
+                <div id="login-error" class="error-msg"></div>
+            </form>
+
+            <!-- Register Form -->
+            <form id="form-register" class="auth-form hidden" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="reg-email">Email</label>
+                    <input type="email" id="reg-email" required placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="reg-username">Username</label>
+                    <input type="text" id="reg-username" required minlength="3" placeholder="Pick a username">
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">Password</label>
+                    <input type="password" id="reg-password" required minlength="8" placeholder="Min 8 characters">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full" id="btn-register">Create Account</button>
+                <div id="register-error" class="error-msg"></div>
+                <div id="register-success" class="success-msg"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ─── Dashboard Page ─── -->
+    <div id="page-dashboard" class="page">
+        <div class="container">
+            <h2>Welcome back, <span id="dash-username"></span>!</h2>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="stat-total">0</div>
+                    <div class="stat-label">Total Sessions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="stat-completed">0</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="stat-in-progress">0</div>
+                    <div class="stat-label">In Progress</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="stat-avg-score">—</div>
+                    <div class="stat-label">Avg Score</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <h3>Improvement Trend</h3>
+                    <span id="trend-badge" class="badge">—</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Recent Activity</h3>
+                <div id="recent-activity-list" class="session-list">
+                    <p class="muted">Loading...</p>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="navigateTo('new-interview')">&#x2795; Start New Interview</button>
+        </div>
+    </div>
+
+    <!-- ─── New Interview Page ─── -->
+    <div id="page-new-interview" class="page">
+        <div class="container container-sm">
+            <h2>Start a New Interview</h2>
+            <form id="form-start-interview" onsubmit="handleStartInterview(event)">
+                <div class="form-group">
+                    <label for="interview-type">Interview Type</label>
+                    <select id="interview-type" required>
+                        <option value="coding">Coding</option>
+                        <option value="behavioral">Behavioral</option>
+                        <option value="system_design">System Design</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="interview-difficulty">Difficulty</label>
+                    <select id="interview-difficulty" required>
+                        <option value="easy">Easy</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="interview-topic">Topic</label>
+                    <input type="text" id="interview-topic" required placeholder="e.g. Python, Data Structures, Leadership" minlength="2">
+                </div>
+                <div class="form-group">
+                    <label for="interview-num-questions">Number of Questions</label>
+                    <input type="number" id="interview-num-questions" value="5" min="1" max="20">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full" id="btn-start-interview">
+                    Start Interview
+                </button>
+                <div id="start-interview-error" class="error-msg"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ─── Interview In-Progress Page ─── -->
+    <div id="page-interview" class="page">
+        <div class="container">
+            <div class="interview-header">
+                <div>
+                    <h2 id="interview-title">Interview</h2>
+                    <span id="interview-meta" class="muted"></span>
+                </div>
+                <div>
+                    <span id="interview-progress" class="badge badge-lg">Q1</span>
+                    <button class="btn btn-sm btn-danger" onclick="handleCancelInterview()">Cancel</button>
+                </div>
+            </div>
+
+            <div class="question-card" id="question-card">
+                <div class="question-label">Question:</div>
+                <div class="question-text" id="question-text"></div>
+            </div>
+
+            <form id="form-answer" onsubmit="handleSubmitAnswer(event)">
+                <div class="form-group">
+                    <label for="answer-text">Your Answer</label>
+                    <textarea id="answer-text" rows="6" required placeholder="Type your answer here..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="answer-code">Code (optional)</label>
+                    <textarea id="answer-code" rows="6" class="code-input" placeholder="Paste code here if applicable..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full" id="btn-submit-answer">
+                    Submit Answer
+                </button>
+                <div id="answer-error" class="error-msg"></div>
+            </form>
+
+            <!-- Feedback on last answer -->
+            <div id="feedback-panel" class="feedback-panel hidden">
+                <h3>AI Feedback</h3>
+                <div class="feedback-score">Score: <span id="fb-score"></span>/10</div>
+                <div class="feedback-text" id="fb-text"></div>
+                <div id="fb-strengths" class="feedback-list"></div>
+                <div id="fb-improvements" class="feedback-list"></div>
+                <button class="btn btn-primary" id="btn-next-question" onclick="showNextQuestion()">
+                    Next Question &#x2192;
+                </button>
+                <button class="btn btn-primary hidden" id="btn-finish" onclick="handleGetSessionFeedback()">
+                    View Session Results &#x2192;
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Session Results Page ─── -->
+    <div id="page-results" class="page">
+        <div class="container">
+            <h2>Session Results</h2>
+            <div id="results-content">
+                <p class="muted">Loading results...</p>
+            </div>
+            <button class="btn btn-primary" onclick="navigateTo('dashboard')">Back to Dashboard</button>
+            <button class="btn btn-outline" onclick="navigateTo('new-interview')">Start Another</button>
+        </div>
+    </div>
+
+    <!-- ─── History Page ─── -->
+    <div id="page-history" class="page">
+        <div class="container">
+            <h2>Interview History</h2>
+            <div id="history-list" class="session-list">
+                <p class="muted">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Analytics Page ─── -->
+    <div id="page-analytics" class="page">
+        <div class="container">
+            <h2>Performance Analytics</h2>
+            <div id="analytics-content">
+                <p class="muted">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Loading Overlay ─── -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <div id="loading-text">Processing...</div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
