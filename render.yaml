@@ -15,21 +15,21 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.7"
       - key: AI_PROVIDER
         value: groq
       - key: GROQ_API_KEY
-        sync: false                   # you'll set this manually in Render dashboard
+        sync: false
       - key: GROQ_MODEL
         value: llama-3.3-70b-versatile
       - key: DATABASE_URL
         fromDatabase:
           name: interview-db
-          property: connectionString   # Render auto-fills this
+          property: connectionString
       - key: SECRET_KEY
-        generateValue: true            # Render generates a random secret
+        generateValue: true
       - key: DEBUG
         value: "False"
       - key: ALLOWED_ORIGINS
-        sync: false                   # set after Vercel deploy (your frontend URL)
-      - key: PYTHON_VERSION
-        value: "3.13.0"
+        value: '["*"]'
