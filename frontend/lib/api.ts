@@ -1,0 +1,244 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   API client – Axios-based typed HTTP client for the FastAPI backend
+   ═══════════════════════════════════════════════════════════════════════════
+   • Axios instance with base URL + JSON defaults
+   • Request interceptor  → attaches Bearer token automatically
+   • Response interceptor → normalises errors, handles 401 (auto-logout)
+   • Every endpoint function is fully typed with interfaces from @/types
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+import axios, {
+  type AxiosError,
+  type AxiosInstance,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
+} from "axios";
+
+import type {
+  AnalyticsOverview,
+  AnswerSubmitResponse,
+  ApiError,
+  ApiResponse,
+  InterviewSession,
+  InterviewStartResponse,
+  LoginRequest,
+  RecentSession,
+  RegisterRequest,
+  SessionFeedbackResponse,
+  StartInterviewRequest,
+  SubmitAnswerRequest,
+  TokenResponse,
+  User,
+} from "@/types";
+
+// ─── Configuration ───────────────────────────────────────────────────────────
+
+const BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
+
+// ─── Token helpers ───────────────────────────────────────────────────────────
+
+let accessToken: string | null = null;
+
+export function getToken(): string | null {
+  if (accessToken) return accessToken;
+  if (typeof window !== "undefined") {
+    accessToken = localStorage.getItem("token");
+  }
+  return accessToken;
+}
+
+export function setToken(token: string): void {
+  accessToken = token;
+  if (typeof window !== "undefined") {
+    localStorage.setItem("token", token);
+  }
+}
+
+export function clearToken(): void {
+  accessToken = null;
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("token");
+  }
+}
+
+// ─── Axios instance ──────────────────────────────────────────────────────────
+
+const api: AxiosInstance = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
+  timeout: 30_000, // 30 s – generous for AI-generated responses
+});
+
+// ─── Request interceptor – attach Bearer token ──────────────────────────────
+
+api.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const token = getToken();
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error: AxiosError) => Promise.reject(error),
+);
+
+// ─── Response interceptor – normalise errors & handle 401 ───────────────────
+
+api.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  (error: AxiosError<ApiError>) => {
+    if (error.response) {
+      const { status } = error.response;
+
+      // 401 Unauthorized → clear tokens & redirect to login
+      if (status === 401) {
+        clearToken();
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
+      }
+
+      // Normalise the error payload so callers always get a message string
+      const data = error.response.data;
+      const message =
+        data?.detail ??
+        data?.message ??
+        data?.error ??
+        `Request failed with status ${status}`;
+
+      return Promise.reject(new Error(message));
+    }
+
+    // Network / timeout error
+    if (error.code === "ECONNABORTED") {
+      return Promise.reject(new Error("Request timed out – please try again."));
+    }
+
+    return Promise.reject(
+      new Error("Network error – check your connection and try again."),
+    );
+  },
+);
+
+// ─── Generic typed helper ────────────────────────────────────────────────────
+
+async function request<T>(
+  method: "GET" | "POST" | "PUT" | "DELETE",
+  path: string,
+  data?: unknown,
+): Promise<ApiResponse<T>> {
+  try {
+    const res = await api.request<T>({ method, url: path, data });
+    return { ok: true, status: res.status, data: res.data };
+  } catch (err) {
+    // If the error came from the response interceptor it's already an Error.
+    // Try to extract the original status code from the axios error.
+    const axiosErr = err as AxiosError;
+    const status = axiosErr.response?.status ?? 500;
+    const message =
+      err instanceof Error ? err.message : "An unexpected error occurred";
+
+    return {
+      ok: false,
+      status,
+      data: { detail: message } as unknown as T,
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  AUTH ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Register a new user account. */
+export async function register(body: RegisterRequest) {
+  return request<User>("POST", "/auth/register", body);
+}
+
+/** Log in with username + password; stores token on success. */
+export async function login(body: LoginRequest) {
+  const res = await request<TokenResponse>("POST", "/auth/login", body);
+  if (res.ok) {
+    setToken(res.data.access_token);
+  }
+  return res;
+}
+
+/** Get the currently authenticated user profile. */
+export async function getMe() {
+  return request<User>("GET", "/auth/me");
+}
+
+/** Log out – simply clears the stored token (stateless JWT). */
+export function logout(): void {
+  clearToken();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  INTERVIEW ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Start a new interview session. */
+export async function startInterview(body: StartInterviewRequest) {
+  return request<InterviewStartResponse>("POST", "/interviews/start", body);
+}
+
+/** Submit an answer for a given session. */
+export async function submitAnswer(
+  sessionId: string,
+  body: SubmitAnswerRequest,
+) {
+  return request<AnswerSubmitResponse>(
+    "POST",
+    `/interviews/${sessionId}/answer`,
+    body,
+  );
+}
+
+/** Get overall feedback / summary for a completed session. */
+export async function getSessionFeedback(sessionId: string) {
+  return request<SessionFeedbackResponse>(
+    "POST",
+    `/interviews/${sessionId}/feedback`,
+  );
+}
+
+/** List all interview sessions for the logged-in user. */
+export async function listSessions() {
+  return request<InterviewSession[]>("GET", "/interviews/");
+}
+
+/** Get a single interview session by ID. */
+export async function getSession(sessionId: string) {
+  return request<InterviewSession>("GET", `/interviews/${sessionId}`);
+}
+
+/** Cancel (delete) an in-progress interview session. */
+export async function cancelSession(sessionId: string) {
+  return request<{ message: string }>(
+    "DELETE",
+    `/interviews/${sessionId}/cancel`,
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  ANALYTICS ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Get analytics overview for the authenticated user. */
+export async function getAnalyticsOverview() {
+  return request<AnalyticsOverview>("GET", "/analytics/overview");
+}
+
+/** Get recent activity / session list for the authenticated user. */
+export async function getRecentActivity() {
+  return request<RecentSession[]>("GET", "/analytics/recent-activity");
+}
+
+// ─── Export the raw axios instance for advanced use cases ─────────────────
+
+export default api;
