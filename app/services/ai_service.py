@@ -31,7 +31,10 @@ else:
     try:
         import ollama
     except ImportError:
-        raise ImportError("Install the ollama package: pip install ollama")
+        logger.warning(
+            "ollama package not installed – install it for local AI: pip install ollama"
+        )
+        ollama = None  # type: ignore[assignment]
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Retry decorator

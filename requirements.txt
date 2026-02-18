@@ -13,13 +13,13 @@ pydantic>=2.10.0
 pydantic-settings>=2.1.0
 email-validator>=2.1.0
 
-# AI / LLM (Ollama for local, Groq for cloud)
-ollama>=0.4.0
+# AI / LLM – groq for cloud, ollama for local (install ollama manually if needed)
 groq>=0.4.0
+# ollama>=0.4.0  # uncomment for local development with Ollama
 
 # Authentication
 passlib[bcrypt]==1.7.4
-bcrypt<4.1
+bcrypt==3.2.2
 python-jose[cryptography]==3.3.0
 
 # Env

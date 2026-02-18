@@ -11,8 +11,10 @@ Database connection and session management.
 - ``check_db_connection`` lightweight connectivity probe.
 """
 
+import asyncio
 import logging
 from typing import AsyncGenerator
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
@@ -34,6 +36,18 @@ if _db_url.startswith("postgres://"):
     _db_url = _db_url.replace("postgres://", "postgresql+asyncpg://", 1)
 elif _db_url.startswith("postgresql://"):
     _db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+# asyncpg does NOT understand libpq's "sslmode" parameter – it uses "ssl".
+# Convert sslmode=require → ssl=require so asyncpg connects with TLS.
+if "asyncpg" in _db_url and "sslmode" in _db_url:
+    _parsed = urlparse(_db_url)
+    _qs = parse_qs(_parsed.query)
+    if "sslmode" in _qs:
+        _ssl_val = _qs.pop("sslmode")[0]  # e.g. "require"
+        _qs.setdefault("ssl", [_ssl_val])
+        _new_query = urlencode(_qs, doseq=True)
+        _db_url = urlunparse(_parsed._replace(query=_new_query))
+        logger.info("Converted sslmode → ssl in DATABASE_URL for asyncpg")
 
 # ── Engine kwargs ─────────────────────────────────────────────────────────────
 # SQLite doesn't support pool_size / max_overflow, so only apply them for
@@ -94,19 +108,28 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 # ── Table creation ────────────────────────────────────────────────────────────
-async def create_tables() -> None:
+async def create_tables(retries: int = 5, delay: float = 2.0) -> None:
     """Create all tables defined in ``Base.metadata``.
 
-    Safe to call repeatedly — SQLAlchemy's ``create_all`` is a no-op for
-    tables that already exist.
+    Retries up to *retries* times with exponential back-off so that cloud
+    databases (e.g. Render PostgreSQL) that need a few seconds to become
+    reachable don't crash the app on first attempt.
     """
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        logger.info("Database tables created / verified")
-    except Exception as exc:
-        logger.error("Failed to create database tables: %s", exc)
-        raise
+    for attempt in range(1, retries + 1):
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logger.info("Database tables created / verified (attempt %d)", attempt)
+            return
+        except Exception as exc:
+            logger.warning(
+                "DB table creation attempt %d/%d failed: %s",
+                attempt, retries, exc,
+            )
+            if attempt == retries:
+                logger.error("All %d DB connection attempts failed – giving up", retries)
+                raise
+            await asyncio.sleep(delay * attempt)  # exponential-ish back-off
 
 
 # Keep the old name as alias so callers that imported ``init_db`` still work.
