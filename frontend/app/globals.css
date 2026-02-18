@@ -1,0 +1,162 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AI Interview Coach – Premium Dark Theme
+   Inspired by Bending Spoons Fellowship aesthetic
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    --background: #08080d;
+    --foreground: #e8e8ed;
+    --card:       #111118;
+    --card-hover: #18181f;
+    --border:     #1e1e2a;
+    --input:      #0c0c12;
+    --muted:      #71717a;
+    --primary:    #8b5cf6;
+    --primary-hover: #a78bfa;
+    --glow:       rgba(139, 92, 246, 0.15);
+  }
+
+  * {
+    @apply border-surface-border;
+  }
+
+  html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-surface text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    letter-spacing: 0.01em;
+  }
+
+  /* selection */
+  ::selection {
+    background: rgba(139, 92, 246, 0.25);
+    color: #fff;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3a3a4e;
+  }
+}
+
+/* ─── Component layer ─────────────────────────────────────────────────── */
+
+@layer components {
+
+  /* ── Cards ──────────────────────────────────────────────────────────── */
+  .card {
+    @apply rounded bg-surface-card border border-surface-border/60 p-6;
+  }
+  .card-hover {
+    @apply card transition-all duration-300
+           hover:bg-surface-card-hover hover:border-brand-500/30
+           hover:shadow-[0_0_24px_rgba(139,92,246,0.06)];
+  }
+
+  /* ── Stat cards ─────────────────────────────────────────────────────── */
+  .stat-card {
+    @apply card text-center;
+  }
+  .stat-number {
+    @apply text-3xl font-bold bg-gradient-to-r from-brand-400 to-brand-500
+           bg-clip-text text-transparent;
+  }
+  .stat-label {
+    @apply text-sm text-foreground-muted mt-1 tracking-wide uppercase;
+  }
+
+  /* ── Badges ─────────────────────────────────────────────────────────── */
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium tracking-wide;
+  }
+  .badge-default {
+    @apply bg-brand-500/10 text-brand-400 border border-brand-500/20;
+  }
+  .badge-success {
+    @apply bg-success-light text-success border border-success/20;
+  }
+  .badge-warning {
+    @apply bg-warning-light text-warning border border-warning/20;
+  }
+  .badge-danger {
+    @apply bg-danger-light text-danger border border-danger/20;
+  }
+
+  /* ── Question card ──────────────────────────────────────────────────── */
+  .question-card {
+    @apply card border-l-[3px] border-l-brand-500;
+  }
+
+  /* ── Inputs ─────────────────────────────────────────────────────────── */
+  .input {
+    @apply w-full px-4 py-3 bg-surface-input border border-surface-border rounded-sm
+           text-foreground placeholder:text-foreground-muted/60
+           focus:outline-none focus:ring-1 focus:ring-brand-500/40 focus:border-brand-500/60
+           transition-all duration-200;
+  }
+
+  /* ── Buttons ────────────────────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-2.5
+           rounded-sm text-sm font-medium tracking-wide
+           transition-all duration-200 cursor-pointer
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-brand-600 text-white
+           hover:bg-brand-500 hover:shadow-[0_0_20px_rgba(139,92,246,0.25)];
+  }
+  .btn-outline {
+    @apply btn bg-transparent text-foreground border border-surface-border
+           hover:border-brand-400/50 hover:text-brand-300
+           hover:shadow-[0_0_16px_rgba(139,92,246,0.08)];
+  }
+  .btn-danger {
+    @apply btn bg-danger/90 text-white hover:bg-danger;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-foreground-muted
+           hover:text-foreground hover:bg-white/[0.03];
+  }
+  .btn-sm {
+    @apply px-3.5 py-1.5 text-xs;
+  }
+  .btn-full {
+    @apply w-full;
+  }
+
+  /* ── Accent text ────────────────────────────────────────────────────── */
+  .text-accent {
+    @apply bg-gradient-to-r from-brand-400 to-brand-300 bg-clip-text text-transparent;
+  }
+
+  /* ── Divider ────────────────────────────────────────────────────────── */
+  .divider {
+    @apply border-t border-surface-border/50;
+  }
+
+  /* ── Glass card (for special sections) ──────────────────────────────── */
+  .glass {
+    @apply bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
