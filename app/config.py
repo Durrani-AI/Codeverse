@@ -4,7 +4,6 @@ All values can be overridden through environment variables or a .env file.
 """
 
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
 from typing import List
 from functools import lru_cache
 import json
@@ -20,35 +19,27 @@ class Settings(BaseSettings):
     PORT: int = 8000
 
     # ── CORS ──────────────────────────────────────────────────────────────────
-    ALLOWED_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-        "http://127.0.0.1:5173",
-    ]
+    # Stored as a plain string so pydantic-settings never tries JSON-parsing.
+    # Use get_cors_origins() to get the parsed list.
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:3001,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:5173"
 
-    @field_validator("ALLOWED_ORIGINS", mode="before")
-    @classmethod
-    def parse_allowed_origins(cls, v):
-        """Accept JSON array string, comma-separated string, or plain string."""
-        if isinstance(v, list):
-            return v
-        if isinstance(v, str):
-            v = v.strip()
-            # Try JSON first: '["http://...", "http://..."]'
-            if v.startswith("["):
-                try:
-                    return json.loads(v)
-                except json.JSONDecodeError:
-                    pass
-            # Comma-separated: "http://a.com,http://b.com"
-            if "," in v:
-                return [s.strip() for s in v.split(",") if s.strip()]
-            # Single value: "*" or "https://myapp.vercel.app"
-            return [v] if v else []
-        return v
+    def get_cors_origins(self) -> List[str]:
+        """Parse ALLOWED_ORIGINS string into a list.
+
+        Accepts:
+        - JSON array:       '["http://a.com", "http://b.com"]'
+        - Comma-separated:  'http://a.com,http://b.com'
+        - Single value:     '*' or 'https://myapp.vercel.app'
+        """
+        v = self.ALLOWED_ORIGINS.strip()
+        if v.startswith("["):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                pass
+        if "," in v:
+            return [s.strip() for s in v.split(",") if s.strip()]
+        return [v] if v else []
 
     # ── Database ──────────────────────────────────────────────────────────────
     DATABASE_URL: str = "sqlite+aiosqlite:///./interview_platform.db"
