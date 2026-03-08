@@ -37,17 +37,28 @@ if _db_url.startswith("postgres://"):
 elif _db_url.startswith("postgresql://"):
     _db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-# asyncpg does NOT understand libpq's "sslmode" parameter – it uses "ssl".
-# Convert sslmode=require → ssl=require so asyncpg connects with TLS.
-if "asyncpg" in _db_url and "sslmode" in _db_url:
+# asyncpg does NOT understand several libpq query parameters.
+# - "sslmode" → convert to "ssl" (asyncpg's equivalent)
+# - "channel_binding" → remove entirely (not supported by asyncpg)
+if "asyncpg" in _db_url:
     _parsed = urlparse(_db_url)
     _qs = parse_qs(_parsed.query)
+    _changed = False
+    # Convert sslmode → ssl
     if "sslmode" in _qs:
-        _ssl_val = _qs.pop("sslmode")[0]  # e.g. "require"
+        _ssl_val = _qs.pop("sslmode")[0]
         _qs.setdefault("ssl", [_ssl_val])
+        _changed = True
+        logger.info("Converted sslmode → ssl in DATABASE_URL for asyncpg")
+    # Remove unsupported params
+    for _unsupported in ("channel_binding", "options"):
+        if _unsupported in _qs:
+            _qs.pop(_unsupported)
+            _changed = True
+            logger.info("Removed unsupported param '%s' from DATABASE_URL", _unsupported)
+    if _changed:
         _new_query = urlencode(_qs, doseq=True)
         _db_url = urlunparse(_parsed._replace(query=_new_query))
-        logger.info("Converted sslmode → ssl in DATABASE_URL for asyncpg")
 
 # ── Engine kwargs ─────────────────────────────────────────────────────────────
 # SQLite doesn't support pool_size / max_overflow, so only apply them for
