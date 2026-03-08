@@ -70,7 +70,7 @@ const api: AxiosInstance = axios.create({
     "Content-Type": "application/json",
     Accept: "application/json",
   },
-  timeout: 30_000, // 30 s – generous for AI-generated responses
+  timeout: 60_000, // 60 s – generous for Render free-tier cold starts + AI responses
 });
 
 // ─── Request interceptor – attach Bearer token ──────────────────────────────
@@ -103,11 +103,20 @@ api.interceptors.response.use(
       }
 
       // Normalise the error payload so callers always get a message string
-      const data = error.response.data;
+      const data = error.response.data as Record<string, unknown> | undefined;
+
+      // 422 validation errors return { details: [{field, message}, ...] }
+      if (status === 422 && data?.details && Array.isArray(data.details)) {
+        const msgs = (data.details as Array<{ field?: string; message?: string }>)
+          .map((d) => d.message || "Invalid value")
+          .join(". ");
+        return Promise.reject(new Error(msgs || "Validation failed"));
+      }
+
       const message =
-        data?.detail ??
-        data?.message ??
-        data?.error ??
+        (typeof data?.detail === "string" ? data.detail : undefined) ??
+        (typeof data?.message === "string" ? data.message : undefined) ??
+        (typeof data?.error === "string" ? data.error : undefined) ??
         `Request failed with status ${status}`;
 
       return Promise.reject(new Error(message));

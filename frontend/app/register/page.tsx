@@ -20,14 +20,24 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
 
-    // Basic client-side validation
+    // Client-side validation (matches backend requirements)
     if (!email.trim() || !username.trim() || !password || !confirmPassword) {
       setError("Please fill in all fields.");
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (username.trim().length < 3) {
+      setError("Username must be at least 3 characters.");
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_-]+$/.test(username.trim())) {
+      setError("Username may only contain letters, digits, _ and -");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
 
