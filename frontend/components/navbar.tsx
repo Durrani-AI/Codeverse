@@ -18,8 +18,8 @@ export default function Navbar() {
   const pathname = usePathname();
 
   // Only show navbar on authenticated app pages (not landing, login, register)
-  const publicPaths = ["/", "/login", "/register"];
-  if (!isAuthenticated || publicPaths.includes(pathname)) return null;
+  const isPublicPage = pathname === "/" || pathname.startsWith("/login") || pathname.startsWith("/register");
+  if (!isAuthenticated || isPublicPage) return null;
 
   return (
     <header className="sticky top-0 z-50 border-b border-surface-border/40 bg-surface/80 backdrop-blur-xl">
