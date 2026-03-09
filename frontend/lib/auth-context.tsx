@@ -84,11 +84,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const res = await getMe();
         if (res.ok) {
           setUser(res.data);
+          router.push("/dashboard");
         } else {
           clearToken();
           setUser(null);
         }
-        router.push("/dashboard");
       } catch {
         clearToken();
         setUser(null);

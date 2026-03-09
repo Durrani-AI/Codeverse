@@ -113,14 +113,17 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           <span className="absolute inset-0 flex items-center justify-center">
             <Spinner
               size={spinnerSizeMap[size]}
-              className="shrink-0"
+              className={cn(
+                "shrink-0",
+                variant === "primary" && "!border-white/30 !border-t-white",
+              )}
             />
           </span>
         )}
 
         {/* Text becomes invisible (but still occupies space) while loading */}
-        <span className={cn(isLoading && !loadingText && "invisible")}>
-          {isLoading && loadingText ? loadingText : children}
+        <span className={cn(isLoading && "invisible")}>
+          {children}
         </span>
       </button>
     );

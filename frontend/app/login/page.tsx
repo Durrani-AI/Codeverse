@@ -27,7 +27,8 @@ export default function LoginPage() {
     try {
       const res = await apiLogin({ username: username.trim(), password });
       if (!res.ok) {
-        setError("Invalid username or password.");
+        const errData = res.data as unknown as { detail?: string };
+        setError(errData?.detail ?? "Invalid username or password.");
         return;
       }
       await login(res.data.access_token);
@@ -35,13 +36,7 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : "Login failed. Please try again.";
-      // Axios wraps errors – dig into response if available
-      if (typeof err === "object" && err !== null && "response" in err) {
-        const axErr = err as { response?: { data?: { detail?: string } } };
-        setError(axErr.response?.data?.detail ?? msg);
-      } else {
-        setError(msg);
-      }
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -115,7 +110,7 @@ export default function LoginPage() {
             className="w-full"
             isLoading={loading}
           >
-            Sign In
+            {loading ? "Signing in…" : "Sign In"}
           </Button>
         </form>
 
