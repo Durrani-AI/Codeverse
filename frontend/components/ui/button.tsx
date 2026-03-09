@@ -91,8 +91,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         aria-disabled={isDisabled || undefined}
         className={cn(
           // Base styles shared by all buttons
-          "inline-flex items-center justify-center font-medium",
+          "relative inline-flex items-center justify-center font-medium",
           "transition-colors duration-150 ease-in-out",
+          "select-none",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
           "focus-visible:ring-offset-surface",
           // Disabled / loading state
@@ -107,14 +108,20 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         {...rest}
       >
+        {/* Spinner overlays centered – does NOT push text */}
         {isLoading && (
-          <Spinner
-            size={spinnerSizeMap[size]}
-            className="shrink-0"
-          />
+          <span className="absolute inset-0 flex items-center justify-center">
+            <Spinner
+              size={spinnerSizeMap[size]}
+              className="shrink-0"
+            />
+          </span>
         )}
 
-        {isLoading && loadingText ? loadingText : children}
+        {/* Text becomes invisible (but still occupies space) while loading */}
+        <span className={cn(isLoading && !loadingText && "invisible")}>
+          {isLoading && loadingText ? loadingText : children}
+        </span>
       </button>
     );
   },
