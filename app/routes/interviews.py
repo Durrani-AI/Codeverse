@@ -36,6 +36,7 @@ from app.schemas import (
     InterviewSessionResponse,
     InterviewStartRequest,
     InterviewStartResponse,
+    QuestionFeedbackDetail,
     QuestionOut,
     SessionFeedbackResponse,
     SubmitAnswerRequest,
@@ -313,19 +314,35 @@ async def session_feedback(
     # Build Q&A pairs ───────────────────────────────────────────────────────
     qa_pairs: list[dict[str, str]] = []
     individual_scores: list[int | None] = []
+    question_feedbacks: list[QuestionFeedbackDetail] = []
 
     for q in sorted(session.questions, key=lambda q: q.asked_at):
         answer_text = ""
         score = None
+        fb_text = None
+        fb_strengths = None
+        fb_improvements = None
         for resp in (q.responses or []):
             answer_text = resp.response_text
             if resp.feedback:
                 score = resp.feedback.score
-        qa_pairs.append(
-            {"question": q.question_text, "answer": answer_text or "(no answer)",
-             **({"score": str(score)} if score else {})}
-        )
+                fb_text = resp.feedback.ai_feedback_text
+                fb_strengths = resp.feedback.strengths
+                fb_improvements = resp.feedback.improvements
+        qa_pairs.append({
+            "question": q.question_text,
+            "answer": answer_text or "(no answer)",
+            **({"score": str(score)} if score else {}),
+        })
         individual_scores.append(score)
+        question_feedbacks.append(QuestionFeedbackDetail(
+            question_text=q.question_text,
+            question_type=q.question_type.value if hasattr(q.question_type, 'value') else q.question_type,
+            score=score,
+            ai_feedback_text=fb_text,
+            strengths=fb_strengths,
+            improvements=fb_improvements,
+        ))
 
     if not qa_pairs:
         raise HTTPException(
@@ -356,6 +373,7 @@ async def session_feedback(
         recommendations=ai_result.get("recommendations", []),
         questions_answered=len(qa_pairs),
         individual_scores=individual_scores,
+        question_feedbacks=question_feedbacks,
     )
 
 

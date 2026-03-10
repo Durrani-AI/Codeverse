@@ -436,14 +436,14 @@ export default function InterviewResultsPage() {
       <section className="space-y-4">
         <h3 className="text-lg font-semibold text-foreground tracking-tight">Question Breakdown</h3>
 
-        {session.questions.length > 0 ? (
+        {(feedback.question_feedbacks ?? []).length > 0 ? (
           <div className="space-y-3">
-            {session.questions.map((q, idx) => {
-              const qScore = feedback.individual_scores[idx] ?? null;
+            {feedback.question_feedbacks.map((qf, idx) => {
+              const qScore = qf.score ?? null;
               const isExpanded = expandedQ === idx;
 
               return (
-                <div key={q.id} className="card overflow-hidden">
+                <div key={idx} className="card overflow-hidden">
                   {/* Collapsed header */}
                   <button
                     type="button"
@@ -454,7 +454,7 @@ export default function InterviewResultsPage() {
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface text-xs font-semibold text-foreground-muted border border-surface-border">
                         {idx + 1}
                       </span>
-                      <p className="text-sm text-foreground truncate">{q.question_text}</p>
+                      <p className="text-sm text-foreground truncate">{qf.question_text}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {qScore !== null && (
@@ -480,7 +480,7 @@ export default function InterviewResultsPage() {
                       {/* Full question */}
                       <div className="space-y-1">
                         <p className="text-xs font-medium text-foreground-muted">Question</p>
-                        <p className="text-sm text-foreground whitespace-pre-wrap">{q.question_text}</p>
+                        <p className="text-sm text-foreground whitespace-pre-wrap">{qf.question_text}</p>
                       </div>
 
                       {/* Score bar */}
@@ -504,12 +504,45 @@ export default function InterviewResultsPage() {
                         </div>
                       )}
 
-                      {/* Note: individual response text is not available from the current
-                          API session data – the questions array doesn't embed user responses.
-                          This section can be enhanced when the API returns response data. */}
-                      <p className="text-xs text-foreground-muted italic">
-                        Detailed response and feedback are included in the overall summary above.
-                      </p>
+                      {/* AI Feedback */}
+                      {qf.ai_feedback_text && (
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-foreground-muted">AI Feedback</p>
+                          <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                            {qf.ai_feedback_text}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Strengths */}
+                      {qf.strengths && qf.strengths.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-success">Strengths</p>
+                          <ul className="space-y-1">
+                            {qf.strengths.map((s, i) => (
+                              <li key={i} className="flex items-start gap-2 text-sm text-foreground">
+                                <span className="mt-0.5 text-success shrink-0">•</span>
+                                {s}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Areas to improve */}
+                      {qf.improvements && qf.improvements.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-warning">Areas to Improve</p>
+                          <ul className="space-y-1">
+                            {qf.improvements.map((s, i) => (
+                              <li key={i} className="flex items-start gap-2 text-sm text-foreground">
+                                <span className="mt-0.5 text-warning shrink-0">•</span>
+                                {s}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -547,10 +580,10 @@ export default function InterviewResultsPage() {
       {/* ═══ Action buttons ═══════════════════════════════════════════════ */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4 py-4 print:hidden">
         <Button variant="primary" size="lg" onClick={() => router.push("/dashboard")}>
-          Start Another Interview →
+          Try Again →
         </Button>
         <Button variant="outline" size="lg" onClick={() => router.push("/dashboard")}>
-          Back to Dashboard
+          Go to Home
         </Button>
       </div>
     </main>

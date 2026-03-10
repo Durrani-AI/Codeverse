@@ -18,12 +18,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type {
   AnswerSubmitResponse,
-  Feedback,
   InterviewSession,
   Question,
 } from "@/types";
 import { getSession, submitAnswer } from "@/lib/api";
-import { cn, formatInterviewType, scoreColor } from "@/lib/utils";
+import { cn, formatInterviewType } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
@@ -43,7 +42,6 @@ interface SessionState {
 
 interface SubmissionState {
   submitting: boolean;
-  feedback: Feedback | null;
   isComplete: boolean;
 }
 
@@ -96,7 +94,6 @@ export default function InterviewSessionPage() {
 
   const [submission, setSubmission] = useState<SubmissionState>({
     submitting: false,
-    feedback: null,
     isComplete: false,
   });
 
@@ -154,7 +151,7 @@ export default function InterviewSessionPage() {
     const question = state.currentQuestion;
     if (!question) return;
 
-    setSubmission({ submitting: true, feedback: null, isComplete: false });
+    setSubmission({ submitting: true, isComplete: false });
 
     const res = await submitAnswer(sessionId, {
       question_id: question.id,
@@ -163,41 +160,32 @@ export default function InterviewSessionPage() {
     });
 
     if (!res.ok) {
-      setSubmission({ submitting: false, feedback: null, isComplete: false });
+      setSubmission({ submitting: false, isComplete: false });
       setState((s) => ({ ...s, error: "Failed to submit answer. Please try again." }));
       return;
     }
 
     const data: AnswerSubmitResponse = res.data;
-    const fb = data.response.feedback ?? null;
 
-    setSubmission({
-      submitting: false,
-      feedback: fb,
-      isComplete: data.is_complete,
-    });
-
-    // If complete, redirect after showing the last feedback briefly
+    // If complete, redirect to results immediately
     if (data.is_complete) {
-      setTimeout(() => router.push(`/interview/${sessionId}/results`), 2500);
+      router.push(`/interview/${sessionId}/results`);
       return;
     }
 
-    // Otherwise advance to the next question after a short feedback peek
+    // Advance to the next question immediately
     if (data.next_question) {
-      setTimeout(() => {
-        setState((s) => ({
-          ...s,
-          currentQuestion: data.next_question,
-          questionIndex: s.questionIndex + 1,
-          totalQuestions: data.questions_remaining
-            ? s.questionIndex + 1 + data.questions_remaining
-            : s.totalQuestions,
-        }));
-        setAnswerText("");
-        setCodeText("");
-        setSubmission({ submitting: false, feedback: null, isComplete: false });
-      }, 3000);
+      setState((s) => ({
+        ...s,
+        currentQuestion: data.next_question,
+        questionIndex: s.questionIndex + 1,
+        totalQuestions: data.questions_remaining
+          ? s.questionIndex + 1 + data.questions_remaining
+          : s.totalQuestions,
+      }));
+      setAnswerText("");
+      setCodeText("");
+      setSubmission({ submitting: false, isComplete: false });
     }
   }, [state.currentQuestion, sessionId, answerText, codeText, isCoding, router]);
 
@@ -206,7 +194,7 @@ export default function InterviewSessionPage() {
     const question = state.currentQuestion;
     if (!question) return;
 
-    setSubmission({ submitting: true, feedback: null, isComplete: false });
+    setSubmission({ submitting: true, isComplete: false });
 
     const res = await submitAnswer(sessionId, {
       question_id: question.id,
@@ -214,7 +202,7 @@ export default function InterviewSessionPage() {
     });
 
     if (!res.ok) {
-      setSubmission({ submitting: false, feedback: null, isComplete: false });
+      setSubmission({ submitting: false, isComplete: false });
       return;
     }
 
@@ -233,7 +221,7 @@ export default function InterviewSessionPage() {
       }));
       setAnswerText("");
       setCodeText("");
-      setSubmission({ submitting: false, feedback: null, isComplete: false });
+      setSubmission({ submitting: false, isComplete: false });
     }
   }, [state.currentQuestion, sessionId, router]);
 
@@ -321,7 +309,7 @@ export default function InterviewSessionPage() {
       )}
 
       {/* ═══ Answer area ══════════════════════════════════════════════════ */}
-      {!submission.feedback && currentQuestion && (
+      {currentQuestion && (
         <section className="space-y-4">
           {/* Text answer (always shown) */}
           <div className="space-y-2">
@@ -381,53 +369,7 @@ export default function InterviewSessionPage() {
         </section>
       )}
 
-      {/* ═══ Feedback display ═════════════════════════════════════════════ */}
-      {submission.feedback && (
-        <section className="glass p-6 space-y-5 animate-slide-up border-l-[3px] border-l-brand-500">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-foreground">AI Feedback</h3>
-            <span className={cn("text-2xl font-bold", scoreColor(submission.feedback.score))}>
-              {submission.feedback.score}/10
-            </span>
-          </div>
 
-          <p className="text-foreground text-sm leading-relaxed whitespace-pre-wrap">
-            {submission.feedback.ai_feedback_text}
-          </p>
-
-          {submission.feedback.strengths && submission.feedback.strengths.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-success">Strengths</h4>
-              <ul className="list-disc list-inside text-sm text-foreground-muted space-y-1">
-                {submission.feedback.strengths.map((s, i) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {submission.feedback.improvements && submission.feedback.improvements.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-warning">Areas to Improve</h4>
-              <ul className="list-disc list-inside text-sm text-foreground-muted space-y-1">
-                {submission.feedback.improvements.map((s, i) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {submission.isComplete ? (
-            <div className="rounded-sm bg-success-light border border-success/20 px-4 py-3 text-sm text-success flex items-center gap-2">
-              Interview complete! Redirecting to results…
-            </div>
-          ) : (
-            <p className="text-xs text-foreground-muted">
-              Next question loading shortly…
-            </p>
-          )}
-        </section>
-      )}
 
       {/* ═══ Progress bar ═════════════════════════════════════════════════ */}
       <div className="space-y-1">

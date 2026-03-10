@@ -144,6 +144,15 @@ export interface AnswerSubmitResponse {
   questions_remaining: number | null;
 }
 
+export interface QuestionFeedbackDetail {
+  question_text: string;
+  question_type: string;
+  score: number | null;
+  ai_feedback_text: string | null;
+  strengths: string[] | null;
+  improvements: string[] | null;
+}
+
 export interface SessionFeedbackResponse {
   session_id: string;
   overall_score: number | null;
@@ -153,6 +162,7 @@ export interface SessionFeedbackResponse {
   recommendations: string[];
   questions_answered: number;
   individual_scores: (number | null)[];
+  question_feedbacks: QuestionFeedbackDetail[];
 }
 
 // ── Generic API wrapper ──────────────────────────────────────────────────────

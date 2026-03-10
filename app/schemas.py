@@ -336,6 +336,19 @@ class AnswerSubmitResponse(BaseModel):
 # ══════════════════════════════════════════════════════════════════════════════
 # 7. Session-level feedback
 # ══════════════════════════════════════════════════════════════════════════════
+class QuestionFeedbackDetail(BaseModel):
+    """Per-question feedback detail returned in session results."""
+
+    question_text: str
+    question_type: str
+    score: Optional[int] = None
+    ai_feedback_text: Optional[str] = None
+    strengths: Optional[List[str]] = None
+    improvements: Optional[List[str]] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class SessionFeedbackResponse(BaseModel):
     """Holistic AI-generated feedback for an entire interview session."""
 
@@ -367,6 +380,10 @@ class SessionFeedbackResponse(BaseModel):
         default_factory=list,
         description="Per-question scores in order they were asked",
         examples=[[7, 8, 6, 9, 7]],
+    )
+    question_feedbacks: List[QuestionFeedbackDetail] = Field(
+        default_factory=list,
+        description="Per-question feedback details in order they were asked",
     )
 
     model_config = ConfigDict(
