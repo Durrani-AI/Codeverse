@@ -72,7 +72,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       variant = "primary",
       size = "md",
       isLoading = false,
-      loadingText,
       fullWidth = false,
       disabled,
       className,
