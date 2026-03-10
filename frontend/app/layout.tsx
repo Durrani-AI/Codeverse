@@ -15,9 +15,9 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "AI Technical Interviewer",
+  title: "Codeverse",
   description:
-    "Practice coding, behavioral, and system design interviews with AI-powered feedback",
+    "AI-powered mock interviews for coding, behavioral, and system design. Real feedback. Real progress.",
 };
 
 export default function RootLayout({

@@ -86,7 +86,7 @@ export default function RegisterPage() {
         <div className="text-center space-y-3">
           <h1 className="text-3xl font-bold tracking-tight">Create Account</h1>
           <p className="text-foreground-muted text-sm">
-            Start practicing AI-powered technical interviews
+            Join Codeverse and start practicing
           </p>
         </div>
 

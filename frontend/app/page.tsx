@@ -1,36 +1,50 @@
+"use client";
+
 import Link from "next/link";
+import TypingAnimation from "@/components/typing-animation";
 
 export default function Home() {
   return (
     <main className="relative min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden">
-      {/* Subtle radial glow behind hero */}
+      {/* Ambient glow layers */}
       <div
         aria-hidden
         className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-                   w-[600px] h-[600px] rounded-full
-                   bg-brand-500/[0.04] blur-[120px]"
+                   w-[700px] h-[700px] rounded-full
+                   bg-brand-500/[0.03] blur-[140px]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute top-1/3 left-1/3
+                   w-[300px] h-[300px] rounded-full
+                   bg-brand-400/[0.02] blur-[100px]"
       />
 
-      <div className="relative z-10 max-w-2xl text-center animate-fade-in">
-        {/* Eyebrow */}
-        <span className="inline-block mb-6 text-xs tracking-[0.25em] uppercase text-foreground-muted">
-          AI-Powered Practice
-        </span>
+      <div className="relative z-10 max-w-2xl text-center space-y-8">
+        {/* Brand mark */}
+        <div className="animate-fade-in">
+          <h1 className="text-6xl sm:text-7xl md:text-8xl font-bold tracking-tighter">
+            <span className="bg-gradient-to-r from-brand-300 via-brand-400 to-brand-500 bg-clip-text text-transparent">
+              Code
+            </span>
+            <span className="text-foreground">verse</span>
+          </h1>
+          <div className="mt-2 h-px w-24 mx-auto bg-gradient-to-r from-transparent via-brand-500/50 to-transparent" />
+        </div>
 
-        {/* Hero heading */}
-        <h1 className="text-5xl sm:text-6xl font-bold leading-[1.1] tracking-tight text-foreground">
-          Master Your Next{" "}
-          <span className="text-accent">Technical Interview</span>
-        </h1>
+        {/* Typing animation */}
+        <div className="animate-fade-in [animation-delay:300ms] opacity-0 [animation-fill-mode:forwards]">
+          <TypingAnimation />
+        </div>
 
         {/* Sub-copy */}
-        <p className="mt-6 text-lg text-foreground-muted leading-relaxed max-w-lg mx-auto text-balance">
-          Realistic mock interviews powered by AI.&nbsp;Get instant feedback,
-          track your progress, and build&nbsp;confidence.
+        <p className="animate-fade-in [animation-delay:500ms] opacity-0 [animation-fill-mode:forwards] text-base text-foreground-muted/70 leading-relaxed max-w-md mx-auto">
+          AI-powered mock interviews for coding, behavioral, and system design.
+          Real feedback. Real progress.
         </p>
 
         {/* CTAs */}
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+        <div className="animate-fade-in [animation-delay:700ms] opacity-0 [animation-fill-mode:forwards] flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link href="/register" className="btn-primary px-8 py-3 text-base">
             Get Started
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -44,7 +58,7 @@ export default function Home() {
         </div>
 
         {/* Trust line */}
-        <p className="mt-14 text-xs text-foreground-muted/50 tracking-wide">
+        <p className="animate-fade-in [animation-delay:900ms] opacity-0 [animation-fill-mode:forwards] text-xs text-foreground-muted/40 tracking-[0.2em] uppercase">
           Coding · Behavioral · System Design
         </p>
       </div>

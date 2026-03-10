@@ -28,12 +28,12 @@ export default function Navbar() {
         <div className="flex items-center gap-6">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2.5 text-base font-semibold tracking-tight text-foreground"
+            className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground"
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-600/20 text-brand-400 text-sm">
-              AI
+            <span className="bg-gradient-to-r from-brand-300 via-brand-400 to-brand-500 bg-clip-text text-transparent font-bold text-lg tracking-tighter">
+              Code
             </span>
-            <span className="hidden sm:inline">Interview Coach</span>
+            <span className="-ml-1.5 font-bold text-lg tracking-tighter">verse</span>
           </Link>
 
           <nav className="flex items-center gap-1">

@@ -52,7 +52,7 @@ export default function LoginPage() {
         <div className="text-center space-y-3">
           <h1 className="text-3xl font-bold tracking-tight">Welcome Back</h1>
           <p className="text-foreground-muted text-sm">
-            Sign in to continue your interview practice
+            Sign in to continue on Codeverse
           </p>
         </div>
 
