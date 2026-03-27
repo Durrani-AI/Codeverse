@@ -1,8 +1,6 @@
-"use client";
+﻿"use client";
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   Navbar – persistent top navigation shown on authenticated pages
-   ═══════════════════════════════════════════════════════════════════════════ */
+/*    Navbar – persistent top navigation shown on authenticated pages */
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -72,3 +70,4 @@ export default function Navbar() {
     </header>
   );
 }
+

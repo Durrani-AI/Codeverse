@@ -1,17 +1,16 @@
 """
-Interview endpoints:
+Interview endpoints.
 
-POST /start                       – create session + first AI question
+POST /start                       – create session + first question
 GET  /{session_id}                – fetch session with all questions & responses
-POST /{session_id}/answer         – submit an answer → AI feedback + next question
-POST /{session_id}/feedback       – holistic AI session-level feedback
+POST /{session_id}/answer         – submit an answer -> feedback + next question
+POST /{session_id}/feedback       – holistic session-level feedback
 GET  /                            – list sessions for the current user
 DELETE /{session_id}              – cancel / delete an in-progress session
 """
 
 import logging
-from datetime import datetime
-from typing import List
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
@@ -54,9 +53,8 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Helpers
-# ──────────────────────────────────────────────────────────────────────────────
+# --- Internal helpers ---
+
 async def _get_session_or_404(
     session_id: str,
     db: AsyncSession,
@@ -65,7 +63,7 @@ async def _get_session_or_404(
     load_questions: bool = False,
     load_responses: bool = False,
 ) -> InterviewSession:
-    """Fetch a session by ID, verify ownership, optionally eager-load relationships."""
+    """Fetch a session by ID, verify ownership, and optionally eager-load relationships."""
     stmt = select(InterviewSession).where(InterviewSession.id == session_id)
     if load_questions:
         stmt = stmt.options(selectinload(InterviewSession.questions))
@@ -85,7 +83,7 @@ async def _get_session_or_404(
 
 
 async def _previous_questions_for(session_id: str, db: AsyncSession) -> list[str]:
-    """Return all question texts already asked in a session."""
+    """Return all question texts already asked in a session (for dedup)."""
     result = await db.execute(
         select(Question.question_text)
         .where(Question.session_id == session_id)
@@ -94,9 +92,8 @@ async def _previous_questions_for(session_id: str, db: AsyncSession) -> list[str
     return list(result.scalars().all())
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# POST /start – create session + first question
-# ──────────────────────────────────────────────────────────────────────────────
+# --- POST /start ---
+
 @router.post(
     "/start",
     response_model=InterviewStartResponse,
@@ -108,9 +105,9 @@ async def start_interview(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a new interview session and generate the first AI question."""
+    """Create a new interview session and generate the first question."""
 
-    # 1 – Create session
+    # Create the session record
     try:
         session = InterviewSession(
             user_id=current_user.id,
@@ -125,7 +122,7 @@ async def start_interview(
         logger.error("DB error creating session: %s", exc)
         raise HTTPException(500, "Failed to create interview session.")
 
-    # 2 – Generate first question via Ollama
+    # Generate the first question via LLM
     try:
         question_text = await generate_interview_question(
             interview_type=request.interview_type.value,
@@ -139,7 +136,7 @@ async def start_interview(
         await db.rollback()
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"AI error: {exc}")
 
-    # 3 – Persist question
+    # Persist the question
     try:
         question = Question(
             session_id=session.id,
@@ -166,13 +163,12 @@ async def start_interview(
     )
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# POST /{session_id}/answer – submit answer → feedback + next question
-# ──────────────────────────────────────────────────────────────────────────────
+# --- POST /{session_id}/answer ---
+
 @router.post(
     "/{session_id}/answer",
     response_model=AnswerSubmitResponse,
-    summary="Submit an answer and get AI feedback + next question",
+    summary="Submit an answer and get feedback + next question",
 )
 async def submit_answer(
     session_id: str,
@@ -180,10 +176,10 @@ async def submit_answer(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Submit a candidate answer for a question in this session.
+    """Submit a candidate answer, receive feedback, and proceed to the next question.
 
-    The AI evaluates the answer and either generates the next question
-    or marks the session as complete if the maximum question count is reached.
+    The LLM evaluates the answer and either generates the next question or
+    marks the session as complete once the configured question limit is reached.
     """
 
     session = await _get_session_or_404(session_id, db, user_id=current_user.id, load_questions=True)
@@ -208,7 +204,7 @@ async def submit_answer(
             "Question not found in this session.",
         )
 
-    # ── Save candidate response ──────────────────────────────────────────
+    # Save the candidate response
     user_resp = UserResponseModel(
         question_id=question.id,
         response_text=body.response_text,
@@ -217,7 +213,7 @@ async def submit_answer(
     db.add(user_resp)
     await db.flush()
 
-    # ── Evaluate via LLM ─────────────────────────────────────────────────
+    # Evaluate the answer via LLM
     eval_data = await evaluate_answer(
         question=question.question_text,
         user_answer=body.response_text,
@@ -237,14 +233,13 @@ async def submit_answer(
     await db.refresh(user_resp)
     await db.refresh(fb)
 
-    # ── Decide: next question or complete ─────────────────────────────────
-    questions_asked = len(session.questions)  # already includes the current Q
+    # Decide: generate next question or complete the session
+    questions_asked = len(session.questions)
     is_complete = questions_asked >= settings.DEFAULT_QUESTIONS_COUNT
     next_question_out = None
 
     if not is_complete:
         try:
-            prev_texts = [q.question_text for q in session.questions]
             next_q_text = await generate_followup_question(
                 original_question=question.question_text,
                 candidate_answer=body.response_text,
@@ -262,12 +257,12 @@ async def submit_answer(
             await db.refresh(next_q)
             next_question_out = QuestionOut.model_validate(next_q)
         except Exception as exc:
-            logger.warning("Next question generation failed: %s – completing session", exc)
+            logger.warning("Follow-up question generation failed: %s – completing session", exc)
             is_complete = True
 
     if is_complete:
         session.status = SessionStatus.COMPLETED
-        session.completed_at = datetime.utcnow()
+        session.completed_at = datetime.now(timezone.utc)
 
     await db.commit()
 
@@ -289,29 +284,28 @@ async def submit_answer(
     )
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# POST /{session_id}/feedback – session-level AI analysis
-# ──────────────────────────────────────────────────────────────────────────────
+# --- POST /{session_id}/feedback ---
+
 @router.post(
     "/{session_id}/feedback",
     response_model=SessionFeedbackResponse,
-    summary="Get holistic AI feedback for the entire session",
+    summary="Get holistic feedback for the entire session",
 )
 async def session_feedback(
     session_id: str,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Generate a comprehensive AI-powered debrief for all Q&A in a session.
+    """Generate a comprehensive debrief covering all Q&A in a session.
 
-    The session does NOT need to be completed first – partial feedback is fine.
+    The session does NOT need to be marked complete – partial feedback is fine.
     """
 
     session = await _get_session_or_404(
         session_id, db, user_id=current_user.id, load_responses=True,
     )
 
-    # Build Q&A pairs ───────────────────────────────────────────────────────
+    # Build Q&A pairs for the LLM
     qa_pairs: list[dict[str, str]] = []
     individual_scores: list[int | None] = []
     question_feedbacks: list[QuestionFeedbackDetail] = []
@@ -350,7 +344,7 @@ async def session_feedback(
             "No questions in this session yet.",
         )
 
-    # Call AI ──────────────────────────────────────────────────────────────
+    # Generate holistic feedback via LLM
     try:
         ai_result = await generate_session_feedback(
             interview_type=session.interview_type.value,
@@ -361,7 +355,7 @@ async def session_feedback(
     except (ConnectionError, RuntimeError) as exc:
         raise HTTPException(
             status.HTTP_502_BAD_GATEWAY,
-            f"AI feedback generation failed: {exc}",
+            f"Feedback generation failed: {exc}",
         )
 
     return SessionFeedbackResponse(
@@ -377,9 +371,8 @@ async def session_feedback(
     )
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# GET / – list sessions
-# ──────────────────────────────────────────────────────────────────────────────
+# --- GET / ---
+
 @router.get(
     "/",
     response_model=list[InterviewSessionOut],
@@ -405,9 +398,8 @@ async def list_sessions(
     ]
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# GET /{session_id} – single session detail
-# ──────────────────────────────────────────────────────────────────────────────
+# --- GET /{session_id} ---
+
 @router.get(
     "/{session_id}",
     response_model=InterviewSessionOut,
@@ -424,9 +416,8 @@ async def get_session(
     return InterviewSessionResponse.from_orm_with_count(session)
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# DELETE /{session_id} – cancel / delete a session
-# ──────────────────────────────────────────────────────────────────────────────
+# --- DELETE /{session_id} ---
+
 @router.delete(
     "/{session_id}",
     status_code=status.HTTP_200_OK,
@@ -437,10 +428,10 @@ async def cancel_session(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Cancel an in-progress session or delete a completed one.
+    """Cancel an in-progress session.
 
-    - In-progress sessions are marked as **completed** with ``completed_at`` set.
-    - The session record is preserved for analytics; only the status changes.
+    In-progress sessions are marked as completed with ``completed_at`` set.
+    The session record is preserved for analytics.
     """
     session = await _get_session_or_404(
         session_id, db, user_id=current_user.id,
@@ -453,7 +444,7 @@ async def cancel_session(
         )
 
     session.status = SessionStatus.COMPLETED
-    session.completed_at = datetime.utcnow()
+    session.completed_at = datetime.now(timezone.utc)
     await db.commit()
     logger.info("Session %s cancelled by user %s", session_id, current_user.id)
 

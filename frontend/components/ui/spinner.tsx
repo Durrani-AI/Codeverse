@@ -1,6 +1,4 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   Spinner – loading indicator component
-   ═══════════════════════════════════════════════════════════════════════════ */
+﻿/*    Spinner – loading indicator component */
 
 interface SpinnerProps {
   size?: "sm" | "md" | "lg";
@@ -22,3 +20,4 @@ export function Spinner({ size = "md", className = "" }: SpinnerProps) {
     />
   );
 }
+

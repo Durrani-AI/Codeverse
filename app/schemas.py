@@ -1,10 +1,8 @@
 """
-Pydantic request / response schemas.
+Pydantic v2 request / response schemas.
 
-Every schema includes:
-- Proper typing with Optional where appropriate
-- Field-level validation (min/max length, value ranges)
-- Example values via model_config / json_schema_extra
+Includes field-level validation, example values, and forward-reference
+resolution at the bottom of the module.
 """
 
 from __future__ import annotations
@@ -22,9 +20,8 @@ from app.models import (
 )
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 1. User schemas
-# ══════════════════════════════════════════════════════════════════════════════
+# --- User schemas ---
+
 class UserCreate(BaseModel):
     """Register a new user account."""
 
@@ -98,9 +95,31 @@ class TokenData(BaseModel):
     user_id: Optional[str] = None
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 2. InterviewSession schemas
-# ══════════════════════════════════════════════════════════════════════════════
+class PasswordChange(BaseModel):
+    """Request body for changing a user's password."""
+
+    current_password: str = Field(
+        ..., min_length=1, description="Current password for verification"
+    )
+    new_password: str = Field(
+        ...,
+        min_length=8,
+        max_length=128,
+        description="New password (8-128 chars)",
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "current_password": "OldP@ss123",
+                "new_password": "NewS3cur3P@ss!",
+            }
+        }
+    )
+
+
+# --- InterviewSession schemas ---
+
 class InterviewSessionCreate(BaseModel):
     """Create / start a new interview session."""
 
@@ -133,12 +152,12 @@ class InterviewSessionCreate(BaseModel):
     )
 
 
-# Keep the old name as alias so existing route imports don't break
+# Backwards-compatible aliases
 InterviewStartRequest = InterviewSessionCreate
 
 
 class InterviewSessionResponse(BaseModel):
-    """Full interview session with all fields + questions count."""
+    """Full interview session with nested questions and computed count."""
 
     id: str = Field(..., examples=["a1b2c3d4-e5f6-7890-abcd-ef1234567890"])
     user_id: str = Field(..., examples=["550e8400-e29b-41d4-a716-446655440000"])
@@ -175,12 +194,11 @@ class InterviewSessionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# Alias for backward compat with existing route imports
 InterviewSessionOut = InterviewSessionResponse
 
 
 class InterviewStartResponse(BaseModel):
-    """Returned after starting a new session – includes the first question."""
+    """Returned after starting a session – includes the first question."""
 
     session_id: str = Field(..., examples=["a1b2c3d4-e5f6-7890-abcd-ef1234567890"])
     interview_type: InterviewType = Field(..., examples=["coding"])
@@ -193,9 +211,8 @@ class InterviewStartResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 3. Question schemas
-# ══════════════════════════════════════════════════════════════════════════════
+# --- Question schemas ---
+
 class QuestionResponse(BaseModel):
     """A single interview question with metadata."""
 
@@ -212,13 +229,11 @@ class QuestionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# Alias for backward compat
 QuestionOut = QuestionResponse
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 4. UserResponse (candidate answer) schemas
-# ══════════════════════════════════════════════════════════════════════════════
+# --- UserResponse (candidate answer) schemas ---
+
 class UserResponseCreate(BaseModel):
     """Submit an answer to an interview question."""
 
@@ -250,13 +265,12 @@ class UserResponseCreate(BaseModel):
     )
 
 
-# Alias – routes previously imported SubmitAnswerRequest
 UserResponseSubmit = UserResponseCreate
 SubmitAnswerRequest = UserResponseCreate
 
 
 class UserResponseOut(BaseModel):
-    """Candidate's answer with optional AI feedback attached."""
+    """Candidate's answer with optional feedback attached."""
 
     id: str = Field(..., examples=["d4e5f6a7-b8c9-0123-4567-89abcdef0123"])
     question_id: str = Field(..., examples=["f47ac10b-58cc-4372-a567-0e02b2c3d479"])
@@ -268,17 +282,16 @@ class UserResponseOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 5. Feedback schemas
-# ══════════════════════════════════════════════════════════════════════════════
+# --- Feedback schemas ---
+
 class FeedbackResponse(BaseModel):
-    """Detailed AI-generated feedback on a candidate's answer."""
+    """Detailed feedback on a candidate's answer."""
 
     id: str = Field(..., examples=["c3d4e5f6-a7b8-9012-3456-789abcdef012"])
     response_id: str = Field(..., examples=["d4e5f6a7-b8c9-0123-4567-89abcdef0123"])
     ai_feedback_text: str = Field(
         ...,
-        description="Detailed prose feedback from the AI evaluator",
+        description="Detailed prose feedback from the evaluator",
         examples=[
             "Good approach using iteration. Consider edge cases like empty lists."
         ],
@@ -305,18 +318,16 @@ class FeedbackResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# Alias for backward compat
 FeedbackOut = FeedbackResponse
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 6. Answer-submission response (includes next question or completion)
-# ══════════════════════════════════════════════════════════════════════════════
+# --- Answer-submission response ---
+
 class AnswerSubmitResponse(BaseModel):
     """Returned after submitting an answer – feedback + what comes next."""
 
     response: UserResponseOut = Field(
-        ..., description="Saved answer with AI feedback"
+        ..., description="Saved answer with feedback"
     )
     is_complete: bool = Field(
         ...,
@@ -333,9 +344,8 @@ class AnswerSubmitResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 7. Session-level feedback
-# ══════════════════════════════════════════════════════════════════════════════
+# --- Session-level feedback ---
+
 class QuestionFeedbackDetail(BaseModel):
     """Per-question feedback detail returned in session results."""
 
@@ -350,7 +360,7 @@ class QuestionFeedbackDetail(BaseModel):
 
 
 class SessionFeedbackResponse(BaseModel):
-    """Holistic AI-generated feedback for an entire interview session."""
+    """Holistic feedback for an entire interview session."""
 
     session_id: str = Field(
         ..., examples=["a1b2c3d4-e5f6-7890-abcd-ef1234567890"]
@@ -402,9 +412,8 @@ class SessionFeedbackResponse(BaseModel):
     )
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 8. Analytics schemas
-# ══════════════════════════════════════════════════════════════════════════════
+# --- Analytics schemas ---
+
 class PerformanceByType(BaseModel):
     """Score breakdown for one interview type."""
 
@@ -470,7 +479,7 @@ class AnalyticsResponse(BaseModel):
     )
 
 
-# ── Forward-reference rebuilds (Pydantic v2) ────────────────────────────────
+# Resolve forward references (Pydantic v2 requirement)
 InterviewSessionResponse.model_rebuild()
 InterviewStartResponse.model_rebuild()
 UserResponseOut.model_rebuild()

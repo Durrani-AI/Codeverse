@@ -1,11 +1,9 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   Button – reusable, accessible button with variants, sizes & states
-   ═══════════════════════════════════════════════════════════════════════════
+﻿/*    Button – reusable, accessible button with variants, sizes & states
+   
    Variants : primary · secondary · outline · ghost
    Sizes    : sm · md · lg
    States   : loading (shows Spinner) · disabled
-   ARIA     : aria-busy while loading, aria-disabled when disabled
-   ═══════════════════════════════════════════════════════════════════════════ */
+   ARIA     : aria-busy while loading, aria-disabled when disabled */
 
 "use client";
 
@@ -13,7 +11,7 @@ import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// Types
 
 export type ButtonVariant = "primary" | "secondary" | "outline" | "ghost";
 export type ButtonSize = "sm" | "md" | "lg";
@@ -31,7 +29,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
 }
 
-// ─── Variant classes ─────────────────────────────────────────────────────────
+// Variant classes
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
@@ -48,7 +46,7 @@ const variantClasses: Record<ButtonVariant, string> = {
     "hover:text-foreground focus-visible:ring-brand-500",
 };
 
-// ─── Size classes ────────────────────────────────────────────────────────────
+// Size classes
 
 const sizeClasses: Record<ButtonSize, string> = {
   sm: "px-3 py-1.5 text-sm gap-1.5 rounded-md",
@@ -56,7 +54,7 @@ const sizeClasses: Record<ButtonSize, string> = {
   lg: "px-6 py-3 text-base gap-2.5 rounded-lg",
 };
 
-// ─── Spinner size mapping ────────────────────────────────────────────────────
+// Spinner size mapping
 
 const spinnerSizeMap: Record<ButtonSize, "sm" | "md" | "lg"> = {
   sm: "sm",
@@ -64,7 +62,7 @@ const spinnerSizeMap: Record<ButtonSize, "sm" | "md" | "lg"> = {
   lg: "md",
 };
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// Component
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
@@ -130,3 +128,4 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 );
 
 Button.displayName = "Button";
+

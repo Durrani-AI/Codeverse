@@ -10,17 +10,19 @@ import json
 
 
 class Settings(BaseSettings):
-    """Central configuration – reads from .env automatically."""
+    """Central configuration object for the platform.
 
-    # ── App ───────────────────────────────────────────────────────────────────
+    Reads from environment variables and .env file automatically.
+    Supports both local (Ollama) and cloud (Groq) AI providers.
+    """
+
+    # App
     APP_NAME: str = "AI Technical Interview Platform"
     DEBUG: bool = True
     HOST: str = "0.0.0.0"
     PORT: int = 8000
 
-    # ── CORS ──────────────────────────────────────────────────────────────────
-    # Stored as a plain string so pydantic-settings never tries JSON-parsing.
-    # Use get_cors_origins() to get the parsed list.
+    # CORS – stored as a plain string so pydantic-settings never tries JSON-parsing.
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:3001,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:5173"
 
     def get_cors_origins(self) -> List[str]:
@@ -41,34 +43,36 @@ class Settings(BaseSettings):
             return [s.strip() for s in v.split(",") if s.strip()]
         return [v] if v else []
 
-    # ── Database ──────────────────────────────────────────────────────────────
+    # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///./interview_platform.db"
 
-    # ── JWT / Auth ────────────────────────────────────────────────────────────
+    # JWT / Auth
     SECRET_KEY: str = "your-secret-key-change-this-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    # ── AI Provider ───────────────────────────────────────────────────────────
-    # "ollama" for local development, "groq" for cloud deployment
+    # AI Provider – "ollama" for local development, "groq" for cloud deployment
     AI_PROVIDER: str = "ollama"
 
-    # ── Ollama (local) ────────────────────────────────────────────────────────
+    # Ollama (local)
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama3.2:1b"
     OLLAMA_TIMEOUT: int = 120
 
-    # ── Groq (cloud) ─────────────────────────────────────────────────────────
+    # Groq (cloud)
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
 
-    # ── Interview defaults ────────────────────────────────────────────────────
+    # Interview defaults
     MAX_INTERVIEW_DURATION_MINUTES: int = 60
     MIN_INTERVIEW_DURATION_MINUTES: int = 15
     DEFAULT_QUESTIONS_COUNT: int = 5
 
-    # ── Rate limiting ─────────────────────────────────────────────────────────
+    # Rate limiting
     RATE_LIMIT_PER_MINUTE: int = 60
+
+    # Security
+    MAX_REQUEST_BODY_BYTES: int = 1_048_576  # 1 MB
 
     class Config:
         env_file = ".env"

@@ -1,11 +1,9 @@
-"use client";
+﻿"use client";
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   ProtectedRoute – wraps pages that require authentication.
-   ═══════════════════════════════════════════════════════════════════════════
+/*    ProtectedRoute – wraps pages that require authentication.
+   
    While the auth state is loading it shows a centred spinner.
-   If the user is NOT authenticated after loading, it redirects to /login.
-   ═══════════════════════════════════════════════════════════════════════════ */
+   If the user is NOT authenticated after loading, it redirects to /login. */
 
 import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -41,3 +39,4 @@ export default function ProtectedRoute({ children }: Props) {
 
   return <>{children}</>;
 }
+

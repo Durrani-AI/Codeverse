@@ -28,15 +28,13 @@ from app.config import settings
 from app.database import check_db_connection, close_db, create_tables, engine
 from app.routes import analytics, auth, interviews
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Logging
-# ══════════════════════════════════════════════════════════════════════════════
+# --- Logging ---
+
 logging.basicConfig(
     level=logging.DEBUG if settings.DEBUG else logging.INFO,
     format="%(asctime)s  %(levelname)-8s  [%(name)s]  %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-# Silence overly-chatty libraries
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("sqlalchemy.engine").setLevel(
@@ -45,21 +43,19 @@ logging.getLogger("sqlalchemy.engine").setLevel(
 
 logger = logging.getLogger(__name__)
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Constants
-# ══════════════════════════════════════════════════════════════════════════════
+# --- Constants ---
+
 API_VERSION = "3.0.0"
 API_PREFIX = "/api/v1"
 
-# ══════════════════════════════════════════════════════════════════════════════
-# OpenAPI tag metadata (rendered in /docs sidebar)
-# ══════════════════════════════════════════════════════════════════════════════
+# --- OpenAPI tag metadata ---
+
 tags_metadata = [
     {
         "name": "Interviews",
         "description": (
             "Core interview flow – start a session, submit answers with "
-            "AI-powered evaluation, and receive session-level feedback.\n\n"
+            "real-time evaluation, and receive session-level feedback.\n\n"
             "**Typical workflow:**\n"
             "1. `POST /start` → creates a session and returns the first question\n"
             "2. `POST /{session_id}/answer` → submit your answer, get feedback + next question\n"
@@ -92,25 +88,16 @@ tags_metadata = [
 ]
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Lifespan (startup / shutdown)
-# ══════════════════════════════════════════════════════════════════════════════
+# --- Lifespan (startup / shutdown) ---
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application startup and shutdown logic.
-
-    Startup:
-    - Creates all database tables (safe to call repeatedly)
-    - Seeds a default demo user for pre-auth usage
-
-    Shutdown:
-    - Disposes the database engine and connection pool
-    """
+    """Startup: create tables + seed demo user. Shutdown: dispose engine."""
     logger.info("Starting up …")
     await create_tables()
     logger.info("Database tables ready")
 
-    # Ensure the placeholder default user exists (for demo / pre-auth usage)
+    # Seed a default demo user for pre-auth / testing usage
     from app.database import AsyncSessionLocal
     from app.models import User
 
@@ -140,21 +127,20 @@ async def lifespan(app: FastAPI):
     logger.info("Cleanup complete")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# FastAPI application
-# ══════════════════════════════════════════════════════════════════════════════
+# --- FastAPI application ---
+
 app = FastAPI(
     title="AI Technical Interview Platform",
     description=(
         "A production-ready backend for **AI-powered technical interviews**.\n\n"
         "### Features\n"
-        "- AI-generated interview questions (coding, behavioral, system design)\n"
+        "- Interview question generation (coding, behavioral, system design)\n"
         "- Real-time answer evaluation with detailed feedback\n"
         "- Adaptive follow-up questions based on candidate responses\n"
         "- Session-level holistic analysis and improvement recommendations\n"
         "- Performance analytics and progress tracking\n\n"
         "### Tech Stack\n"
-        "FastAPI · SQLAlchemy (async) · Ollama LLM · Pydantic v2 · JWT Auth\n\n"
+        "FastAPI · SQLAlchemy (async) · Ollama / Groq LLM · Pydantic v2 · JWT Auth\n\n"
         "### Quick Start\n"
         "```bash\n"
         "# 1. Start Ollama\n"
@@ -172,7 +158,7 @@ app = FastAPI(
     },
     contact={
         "name": "AI Interview Platform",
-        "url": "https://github.com/your-org/ai-interview-platform",
+        "url": "https://github.com/Durrani-AI/AI-Tech-Interviewer",
     },
     docs_url="/docs",
     redoc_url="/redoc",
@@ -180,11 +166,9 @@ app = FastAPI(
 )
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Middleware
-# ══════════════════════════════════════════════════════════════════════════════
+# --- Middleware ---
 
-# ── CORS ──────────────────────────────────────────────────────────────────────
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.get_cors_origins(),
@@ -195,14 +179,28 @@ app.add_middleware(
 )
 
 
-# ── Request ID + timing middleware ────────────────────────────────────────────
+# Security headers
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    """Attach standard security headers to every response."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    if not settings.DEBUG:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
+
+# Request ID + timing
 @app.middleware("http")
 async def request_context_middleware(request: Request, call_next):
     """Attach a unique request ID and measure processing time.
 
     Response headers:
-    - ``X-Request-ID``   – unique identifier for log correlation
-    - ``X-Process-Time`` – wall-clock seconds spent handling the request
+    - X-Request-ID   – unique identifier for log correlation
+    - X-Process-Time – wall-clock seconds spent handling the request
     """
     request_id = str(uuid.uuid4())
     request.state.request_id = request_id
@@ -225,17 +223,32 @@ async def request_context_middleware(request: Request, call_next):
     return response
 
 
-# ── Rate-limiting middleware (in-memory, per-IP) ──────────────────────────────
+# Request body size limit
+@app.middleware("http")
+async def request_size_limit_middleware(request: Request, call_next):
+    """Reject requests with a body larger than MAX_REQUEST_BODY_BYTES."""
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > settings.MAX_REQUEST_BODY_BYTES:
+        return JSONResponse(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            content={
+                "error": "payload_too_large",
+                "message": f"Request body exceeds {settings.MAX_REQUEST_BODY_BYTES} bytes.",
+                "status_code": 413,
+            },
+        )
+    return await call_next(request)
+
+
+# Rate limiting (in-memory, per-IP)
 _rate_limit_store: dict[str, list[float]] = defaultdict(list)
 
 
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
-    """Enforce a per-IP request limit based on ``RATE_LIMIT_PER_MINUTE``.
+    """Enforce a sliding-window per-IP request limit.
 
-    Uses a simple sliding-window counter stored in memory. Returns 429
-    when the client exceeds the configured threshold.
-
+    Returns 429 when the client exceeds RATE_LIMIT_PER_MINUTE.
     Health-check and docs paths are exempt.
     """
     exempt_prefixes = ("/health", "/docs", "/redoc", "/openapi.json", "/")
@@ -244,7 +257,7 @@ async def rate_limit_middleware(request: Request, call_next):
 
     client_ip = request.client.host if request.client else "unknown"
     now = time.time()
-    window = 60.0  # seconds
+    window = 60.0
 
     # Prune expired entries
     _rate_limit_store[client_ip] = [
@@ -267,28 +280,11 @@ async def rate_limit_middleware(request: Request, call_next):
     return await call_next(request)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Exception handlers
-# ══════════════════════════════════════════════════════════════════════════════
+# --- Exception handlers ---
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Return a structured 422 response for invalid request bodies / params.
-
-    Example response::
-
-        {
-            "error": "validation_error",
-            "message": "Request validation failed",
-            "details": [
-                {
-                    "field": "body → topic",
-                    "message": "String should have at least 2 characters",
-                    "type": "string_too_short"
-                }
-            ]
-        }
-    """
+    """Structured 422 response for invalid request bodies / params."""
     details = []
     for err in exc.errors():
         loc_parts = [str(p) for p in err.get("loc", [])]
@@ -317,23 +313,14 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    """Normalise all HTTPException responses into a consistent envelope.
-
-    Example response::
-
-        {
-            "error": "not_found",
-            "message": "Session not found",
-            "status_code": 404
-        }
-    """
-    # Map common status codes to readable labels
+    """Normalize all HTTPException responses into a consistent envelope."""
     code_labels = {
         400: "bad_request",
         401: "unauthorized",
         403: "forbidden",
         404: "not_found",
         409: "conflict",
+        413: "payload_too_large",
         422: "validation_error",
         429: "rate_limited",
         500: "internal_error",
@@ -353,10 +340,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
-    """Catch-all for unexpected errors – log the traceback and return 500.
-
-    Never leaks internal details to the client in production.
-    """
+    """Catch-all for unexpected errors – never leaks internal details in production."""
     request_id = getattr(request.state, "request_id", "unknown")
     logger.exception(
         "Unhandled exception on %s %s [request_id=%s]",
@@ -370,7 +354,6 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
         "status_code": 500,
         "request_id": request_id,
     }
-    # In debug mode, include the error type and message for easier diagnosis
     if settings.DEBUG:
         body["debug"] = {
             "type": type(exc).__name__,
@@ -379,9 +362,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     return JSONResponse(status_code=500, content=body)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Routers
-# ══════════════════════════════════════════════════════════════════════════════
+# --- Routers ---
+
 app.include_router(
     interviews.router,
     prefix=f"{API_PREFIX}/interviews",
@@ -398,15 +380,13 @@ app.include_router(
     tags=["Analytics"],
 )
 
-# ── Static files (frontend) ───────────────────────────────────────────────────
+# Static files (legacy frontend)
 _static_dir = Path(__file__).resolve().parent / "static"
 if _static_dir.is_dir():
     app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# System endpoints
-# ══════════════════════════════════════════════════════════════════════════════
+# --- System endpoints ---
 
 @app.get(
     "/",
@@ -430,21 +410,7 @@ async def serve_frontend():
     response_description="Basic API information and navigation links",
 )
 async def root():
-    """Return API metadata and useful navigation links.
-
-    **Example response:**
-    ```json
-    {
-        "name": "AI Technical Interview Platform",
-        "version": "3.0.0",
-        "status": "running",
-        "docs": "/docs",
-        "redoc": "/redoc",
-        "health": "/health",
-        "api_prefix": "/api/v1"
-    }
-    ```
-    """
+    """Return API metadata and navigation links."""
     return {
         "name": settings.APP_NAME,
         "version": API_VERSION,
@@ -466,35 +432,7 @@ async def health_check():
     """Check the health of the API and its dependencies.
 
     Returns connectivity status for the database and the configured
-    Ollama model endpoint.
-
-    **Example healthy response:**
-    ```json
-    {
-        "status": "healthy",
-        "version": "3.0.0",
-        "timestamp": "2026-02-15T12:00:00Z",
-        "checks": {
-            "database": "connected",
-            "ollama_configured": true,
-            "ollama_model": "llama3.2:1b"
-        }
-    }
-    ```
-
-    **Example degraded response (503):**
-    ```json
-    {
-        "status": "degraded",
-        "version": "3.0.0",
-        "timestamp": "2026-02-15T12:00:00Z",
-        "checks": {
-            "database": "unreachable",
-            "ollama_configured": true,
-            "ollama_model": "llama3.2:1b"
-        }
-    }
-    ```
+    LLM model endpoint.
     """
     db_ok = await check_db_connection()
     if settings.AI_PROVIDER == "groq":
@@ -524,9 +462,8 @@ async def health_check():
     return payload
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Development entry-point
-# ══════════════════════════════════════════════════════════════════════════════
+# --- Development entry-point ---
+
 if __name__ == "__main__":
     import uvicorn
 

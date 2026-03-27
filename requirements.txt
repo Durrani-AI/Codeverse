@@ -1,4 +1,4 @@
-# FastAPI and server
+# Core
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
 python-multipart==0.0.6
@@ -8,19 +8,18 @@ sqlalchemy>=2.0.36
 aiosqlite==0.19.0
 asyncpg>=0.29.0
 
-# Pydantic and validation
+# Validation
 pydantic>=2.10.0
 pydantic-settings>=2.1.0
 email-validator>=2.1.0
 
-# AI / LLM – groq for cloud, ollama for local (install ollama manually if needed)
+# LLM providers
 groq>=0.4.0
-# ollama>=0.4.0  # uncomment for local development with Ollama
 
-# Authentication
+# Auth
 passlib[bcrypt]==1.7.4
 bcrypt==3.2.2
 python-jose[cryptography]==3.3.0
 
-# Env
+# Environment
 python-dotenv==1.0.0

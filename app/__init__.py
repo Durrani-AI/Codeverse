@@ -1,1 +1,1 @@
-# AI Technical Interview Platform
+# app package

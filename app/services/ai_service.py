@@ -1,11 +1,11 @@
 """
-LLM integration via Ollama (local) or Groq (cloud).
+LLM integration layer supporting Ollama (local) and Groq (cloud).
 
-Provides:
-- generate_interview_question()  → AI-crafted question (avoids repeats)
-- evaluate_answer()              → structured feedback dict
-- generate_followup_question()   → contextual follow-up based on the response
-- generate_session_feedback()    → holistic session-level AI analysis
+Provides four public functions:
+- generate_interview_question()  – craft a question (avoids repeats)
+- evaluate_answer()              – structured feedback dict
+- generate_followup_question()   – contextual follow-up based on the response
+- generate_session_feedback()    – holistic session-level analysis
 
 All public functions use automatic retry with exponential back-off.
 """
@@ -21,7 +21,7 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# ── Conditional imports based on provider ─────────────────────────────────────
+# Conditional imports based on the configured provider
 if settings.AI_PROVIDER == "groq":
     try:
         from groq import AsyncGroq
@@ -32,13 +32,12 @@ else:
         import ollama
     except ImportError:
         logger.warning(
-            "ollama package not installed – install it for local AI: pip install ollama"
+            "ollama package not installed – install it for local inference: pip install ollama"
         )
         ollama = None  # type: ignore[assignment]
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Retry decorator
-# ──────────────────────────────────────────────────────────────────────────────
+# --- Retry decorator ---
+
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 1.0  # seconds
 
@@ -47,11 +46,7 @@ def with_retry(
     max_retries: int = MAX_RETRIES,
     base_delay: float = RETRY_BASE_DELAY,
 ):
-    """Decorator that retries an async function with exponential back-off.
-
-    Retries on transient (connection / timeout) errors; raises immediately
-    on deterministic failures like bad model names.
-    """
+    """Decorator: retries an async function with exponential back-off on transient errors."""
 
     def decorator(
         fn: Callable[..., Coroutine[Any, Any, Any]],
@@ -67,21 +62,19 @@ def with_retry(
                     if attempt < max_retries:
                         delay = base_delay * (2 ** (attempt - 1))
                         logger.warning(
-                            "%s attempt %d/%d failed (%s). Retrying in %.1fs …",
+                            "%s attempt %d/%d failed (%s). Retrying in %.1fs",
                             fn.__name__, attempt, max_retries, exc, delay,
                         )
                         await asyncio.sleep(delay)
                 except Exception as exc:
-                    # Check if it's a non-transient model/API error
                     exc_name = type(exc).__name__
                     if "ResponseError" in exc_name or "AuthenticationError" in exc_name:
                         raise RuntimeError(f"AI provider error: {exc}") from exc
-                    # Otherwise treat as transient
                     last_exc = exc
                     if attempt < max_retries:
                         delay = base_delay * (2 ** (attempt - 1))
                         logger.warning(
-                            "%s attempt %d/%d failed (%s). Retrying in %.1fs …",
+                            "%s attempt %d/%d failed (%s). Retrying in %.1fs",
                             fn.__name__, attempt, max_retries, exc, delay,
                         )
                         await asyncio.sleep(delay)
@@ -92,9 +85,8 @@ def with_retry(
     return decorator
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Prompt templates (one per interview type)
-# ──────────────────────────────────────────────────────────────────────────────
+# --- Prompt templates (one per interview type) ---
+
 INTERVIEW_PROMPTS: dict[str, str] = {
     "coding": (
         "You are a senior software engineer conducting a {difficulty} level "
@@ -140,11 +132,10 @@ SYSTEM_PROMPT = (
 )
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Helpers
-# ──────────────────────────────────────────────────────────────────────────────
+# --- Internal helpers ---
+
 def _build_previous_context(previous_questions: list[str] | None) -> str:
-    """Build a prompt fragment telling the LLM to avoid previously asked Qs."""
+    """Build a prompt fragment telling the LLM to avoid previously asked questions."""
     if not previous_questions:
         return ""
     numbered = "\n".join(
@@ -160,16 +151,15 @@ def _build_previous_context(previous_questions: list[str] | None) -> str:
 def _extract_json(text: str) -> dict:
     """Best-effort extraction of a JSON object from LLM output.
 
-    The model sometimes wraps its JSON in markdown code fences or adds prose
-    before/after the JSON.  This helper handles those cases.
+    Handles markdown code fences and prose surrounding the JSON block.
     """
-    # Try direct parse first
+    # Direct parse
     try:
         return json.loads(text)
     except json.JSONDecodeError:
         pass
 
-    # Strip markdown code fences
+    # Strip markdown fences
     cleaned = re.sub(r"```(?:json)?\s*", "", text)
     cleaned = cleaned.strip().rstrip("`")
     try:
@@ -177,7 +167,7 @@ def _extract_json(text: str) -> dict:
     except json.JSONDecodeError:
         pass
 
-    # Find the first { … } block
+    # Find the first { ... } block
     match = re.search(r"\{[\s\S]*\}", cleaned)
     if match:
         try:
@@ -210,7 +200,7 @@ async def _chat_groq(
     max_tokens: int = 512,
     top_p: float | None = None,
 ) -> str:
-    """Call the Groq cloud API (OpenAI-compatible)."""
+    """Call the Groq cloud API (OpenAI-compatible interface)."""
     kwargs: dict[str, Any] = {
         "model": settings.GROQ_MODEL,
         "messages": messages,
@@ -267,7 +257,7 @@ async def _chat_ollama(
             raise RuntimeError("Ollama returned an empty response")
         return text
     except ollama.ResponseError:
-        raise  # let decorator decide
+        raise  # let the retry decorator decide
     except Exception as exc:
         msg = str(exc).lower()
         if "connect" in msg or "refused" in msg:
@@ -279,9 +269,8 @@ async def _chat_ollama(
         raise
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Public API
-# ──────────────────────────────────────────────────────────────────────────────
+# --- Public API ---
+
 @with_retry()
 async def generate_interview_question(
     interview_type: str,
@@ -303,9 +292,11 @@ async def generate_interview_question(
         topic=topic,
         previous_context=_build_previous_context(previous_questions),
     )
+
+    model_name = settings.GROQ_MODEL if settings.AI_PROVIDER == "groq" else settings.OLLAMA_MODEL
     logger.info(
         "Generating %s question | difficulty=%s | topic=%s | model=%s | prev=%d",
-        interview_type, difficulty, topic, settings.OLLAMA_MODEL,
+        interview_type, difficulty, topic, model_name,
         len(previous_questions or []),
     )
 
@@ -329,7 +320,7 @@ async def evaluate_answer(
     interview_type: str,
     difficulty: str,
 ) -> dict:
-    """Evaluate a candidate's answer. Returns parsed JSON dict."""
+    """Evaluate a candidate's answer and return structured feedback as a dict."""
 
     prompt = (
         f"You are evaluating a candidate's answer in a {difficulty} level "
@@ -418,8 +409,8 @@ async def generate_session_feedback(
 
     Returns
     -------
-    dict with keys: overall_score, summary, key_strengths, areas_for_improvement,
-    recommendations, question_scores.
+    dict with keys: overall_score, summary, key_strengths,
+    areas_for_improvement, recommendations.
     """
     qa_block = "\n\n".join(
         f"Q{i}: {pair['question']}\n"

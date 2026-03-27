@@ -1,6 +1,4 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   Badge – status / label indicator
-   ═══════════════════════════════════════════════════════════════════════════ */
+﻿/*    Badge – status / label indicator */
 
 import { cn } from "@/lib/utils";
 
@@ -26,3 +24,4 @@ export function Badge({ variant = "default", children, className }: BadgeProps) 
     </span>
   );
 }
+

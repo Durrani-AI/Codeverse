@@ -1,10 +1,8 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   AI Technical Interviewer – Frontend Application
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* AI Technical Interviewer – Frontend Application */
 
 const API = "/api/v1";
 
-// ─── State ───────────────────────────────────────────────────────────────────
+// State
 let token = localStorage.getItem("token") || null;
 let currentUser = null;
 
@@ -16,7 +14,7 @@ let questionsAnswered = 0;
 let totalQuestions = 5;
 let isComplete = false;
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// Helpers
 function $(id) { return document.getElementById(id); }
 
 async function api(path, options = {}) {
@@ -59,7 +57,7 @@ function scoreColor(score) {
     return "var(--danger)";
 }
 
-// ─── Navigation ──────────────────────────────────────────────────────────────
+// Navigation
 function navigateTo(page) {
     document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
     $(`page-${page}`).classList.add("active");
@@ -82,7 +80,7 @@ document.querySelectorAll(".nav-link").forEach(link => {
     });
 });
 
-// ─── Auth ────────────────────────────────────────────────────────────────────
+// Auth
 function switchAuthTab(tab) {
     document.querySelectorAll(".tab-group .tab").forEach(t => t.classList.remove("active"));
     if (tab === "login") {
@@ -171,7 +169,7 @@ async function enterApp() {
     navigateTo("dashboard");
 }
 
-// ─── Dashboard ───────────────────────────────────────────────────────────────
+// Dashboard
 async function loadDashboard() {
     $("dash-username").textContent = currentUser?.username || "User";
 
@@ -213,7 +211,7 @@ async function loadDashboard() {
     }
 }
 
-// ─── History ─────────────────────────────────────────────────────────────────
+// History
 async function loadHistory() {
     const { ok, data } = await api("/interviews/");
     const list = $("history-list");
@@ -264,7 +262,7 @@ function resumeSession(session) {
     navigateToInterview();
 }
 
-// ─── Start Interview ─────────────────────────────────────────────────────────
+// Start Interview
 async function handleStartInterview(e) {
     e.preventDefault();
     $("start-interview-error").textContent = "";
@@ -327,7 +325,7 @@ function displayQuestion(q) {
     $("btn-submit-answer").disabled = false;
 }
 
-// ─── Submit Answer ───────────────────────────────────────────────────────────
+// Submit Answer
 async function handleSubmitAnswer(e) {
     e.preventDefault();
     $("answer-error").textContent = "";
@@ -423,7 +421,7 @@ function showNextQuestion() {
     }
 }
 
-// ─── Session Feedback (end of interview) ─────────────────────────────────────
+// Session Feedback (end of interview)
 async function handleGetSessionFeedback() {
     showLoading("AI is generating your session summary...");
     const { ok, data } = await api(`/interviews/${currentSessionId}/feedback`, {
@@ -513,16 +511,16 @@ function renderResults(feedback) {
     `;
 }
 
-// ─── Cancel Interview ────────────────────────────────────────────────────────
+// Cancel Interview
 async function handleCancelInterview() {
     if (!confirm("Are you sure you want to cancel this interview?")) return;
     showLoading("Cancelling...");
-    await api(`/interviews/${currentSessionId}/cancel`, { method: "DELETE" });
+    await api(`/interviews/${currentSessionId}`, { method: "DELETE" });
     hideLoading();
     navigateTo("dashboard");
 }
 
-// ─── Analytics ───────────────────────────────────────────────────────────────
+// Analytics
 async function loadAnalytics() {
     const { ok, data } = await api("/analytics/overview");
     if (!ok) {
@@ -585,7 +583,7 @@ async function loadAnalytics() {
     `;
 }
 
-// ─── Init ────────────────────────────────────────────────────────────────────
+// Init
 (async function init() {
     if (token) {
         await enterApp();

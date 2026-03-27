@@ -152,7 +152,7 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="input w-full"
-              placeholder="••••••••"
+              placeholder="--------"
             />
           </div>
 
@@ -171,7 +171,7 @@ export default function RegisterPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="input w-full"
-              placeholder="••••••••"
+              placeholder="--------"
             />
           </div>
 

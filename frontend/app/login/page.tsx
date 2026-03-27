@@ -99,7 +99,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="input w-full"
-              placeholder="••••••••"
+              placeholder="--------"
             />
           </div>
 

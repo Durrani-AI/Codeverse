@@ -1,8 +1,6 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   TypeScript interfaces for the AI Interview Platform
-   ═══════════════════════════════════════════════════════════════════════════ */
+﻿/*    TypeScript interfaces for the AI Interview Platform */
 
-// ── Enums ────────────────────────────────────────────────────────────────────
+// Enums
 
 export type InterviewType = "coding" | "behavioral" | "system_design";
 export type DifficultyLevel = "easy" | "medium" | "hard";
@@ -10,7 +8,7 @@ export type SessionStatus = "in_progress" | "completed" | "cancelled";
 export type QuestionType = "coding" | "behavioral" | "system_design" | "follow_up";
 export type ImprovementTrend = "improving" | "stable" | "declining" | "insufficient_data";
 
-// ── 1. User ──────────────────────────────────────────────────────────────────
+// 1. User
 
 export interface User {
   id: string;
@@ -20,7 +18,7 @@ export interface User {
   created_at: string; // ISO-8601
 }
 
-// ── 2. InterviewSession ──────────────────────────────────────────────────────
+// 2. InterviewSession
 
 export interface InterviewSession {
   id: string;
@@ -35,7 +33,7 @@ export interface InterviewSession {
   questions_count: number;
 }
 
-// ── 3. Question ──────────────────────────────────────────────────────────────
+// 3. Question
 
 export interface Question {
   id: string;
@@ -45,7 +43,7 @@ export interface Question {
   asked_at: string;
 }
 
-// ── 4. UserResponse (candidate answer) ───────────────────────────────────────
+// 4. UserResponse (candidate answer)
 
 export interface UserResponse {
   id: string;
@@ -56,7 +54,7 @@ export interface UserResponse {
   feedback: Feedback | null;
 }
 
-// ── 5. Feedback ──────────────────────────────────────────────────────────────
+// 5. Feedback
 
 export interface Feedback {
   id: string;
@@ -68,7 +66,7 @@ export interface Feedback {
   created_at: string;
 }
 
-// ── 6. Analytics ─────────────────────────────────────────────────────────────
+// 6. Analytics
 
 export interface PerformanceByType {
   interview_type: string;
@@ -94,7 +92,7 @@ export interface RecentSession {
   started_at: string | null;
 }
 
-// ── API Request Bodies ───────────────────────────────────────────────────────
+// API Request Bodies
 
 export interface RegisterRequest {
   email: string;
@@ -120,7 +118,7 @@ export interface SubmitAnswerRequest {
   response_code?: string;
 }
 
-// ── API Response Bodies ──────────────────────────────────────────────────────
+// API Response Bodies
 
 export interface TokenResponse {
   access_token: string;
@@ -165,7 +163,7 @@ export interface SessionFeedbackResponse {
   question_feedbacks: QuestionFeedbackDetail[];
 }
 
-// ── Generic API wrapper ──────────────────────────────────────────────────────
+// Generic API wrapper
 
 export interface ApiResponse<T> {
   ok: boolean;
@@ -179,3 +177,4 @@ export interface ApiError {
   message?: string;
   errors?: Array<{ loc: string[]; msg: string; type: string }>;
 }
+

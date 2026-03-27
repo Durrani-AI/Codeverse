@@ -1,18 +1,17 @@
 """
-SQLAlchemy ORM models with UUID primary keys.
+SQLAlchemy ORM models.
 
-Models
-------
-- User              – registered platform users
-- InterviewSession  – one interview attempt
-- Question          – a question posed during a session
-- UserResponse      – candidate's answer to a question
-- Feedback          – AI-generated feedback on a response
+Models:
+    User             - registered platform users
+    InterviewSession - a single interview attempt
+    Question         - a question posed during a session
+    UserResponse     - candidate's answer to a question
+    Feedback         - evaluation feedback on a response
 """
 
 import enum
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     Boolean,
@@ -33,17 +32,13 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Helpers
-# ──────────────────────────────────────────────────────────────────────────────
 def generate_uuid() -> str:
     """Return a new UUID-4 as a string (portable across all DB backends)."""
     return str(uuid.uuid4())
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Enums
-# ──────────────────────────────────────────────────────────────────────────────
+# --- Enum types ---
+
 class InterviewType(str, enum.Enum):
     CODING = "coding"
     BEHAVIORAL = "behavioral"
@@ -69,9 +64,8 @@ class QuestionType(str, enum.Enum):
     FREE_RESPONSE = "free_response"
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# 1. User
-# ──────────────────────────────────────────────────────────────────────────────
+# --- Models ---
+
 class User(Base):
     __tablename__ = "users"
 
@@ -82,7 +76,6 @@ class User(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=func.now(), nullable=False)
 
-    # ── Relationships ─────────────────────────────────────────────────────────
     sessions = relationship(
         "InterviewSession", back_populates="user", cascade="all, delete-orphan"
     )
@@ -91,9 +84,6 @@ class User(Base):
         return f"<User id={self.id!r} username={self.username!r}>"
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# 2. InterviewSession
-# ──────────────────────────────────────────────────────────────────────────────
 class InterviewSession(Base):
     __tablename__ = "interview_sessions"
     __table_args__ = (
@@ -118,7 +108,6 @@ class InterviewSession(Base):
     started_at = Column(DateTime, default=func.now(), nullable=False)
     completed_at = Column(DateTime, nullable=True)
 
-    # ── Relationships ─────────────────────────────────────────────────────────
     user = relationship("User", back_populates="sessions")
     questions = relationship(
         "Question", back_populates="session", cascade="all, delete-orphan"
@@ -128,9 +117,6 @@ class InterviewSession(Base):
         return f"<InterviewSession id={self.id!r} status={self.status!r}>"
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# 3. Question
-# ──────────────────────────────────────────────────────────────────────────────
 class Question(Base):
     __tablename__ = "questions"
     __table_args__ = (
@@ -149,7 +135,6 @@ class Question(Base):
     )
     asked_at = Column(DateTime, default=func.now(), nullable=False)
 
-    # ── Relationships ─────────────────────────────────────────────────────────
     session = relationship("InterviewSession", back_populates="questions")
     responses = relationship(
         "UserResponse", back_populates="question", cascade="all, delete-orphan"
@@ -159,9 +144,6 @@ class Question(Base):
         return f"<Question id={self.id!r} type={self.question_type!r}>"
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# 4. UserResponse
-# ──────────────────────────────────────────────────────────────────────────────
 class UserResponse(Base):
     __tablename__ = "user_responses"
     __table_args__ = (
@@ -175,10 +157,9 @@ class UserResponse(Base):
         nullable=False,
     )
     response_text = Column(Text, nullable=False)
-    response_code = Column(Text, nullable=True)  # optional code block
+    response_code = Column(Text, nullable=True)
     submitted_at = Column(DateTime, default=func.now(), nullable=False)
 
-    # ── Relationships ─────────────────────────────────────────────────────────
     question = relationship("Question", back_populates="responses")
     feedback = relationship(
         "Feedback", back_populates="response", uselist=False, cascade="all, delete-orphan"
@@ -188,9 +169,6 @@ class UserResponse(Base):
         return f"<UserResponse id={self.id!r}>"
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# 5. Feedback
-# ──────────────────────────────────────────────────────────────────────────────
 class Feedback(Base):
     __tablename__ = "feedbacks"
     __table_args__ = (
@@ -205,12 +183,11 @@ class Feedback(Base):
         unique=True,
     )
     ai_feedback_text = Column(Text, nullable=False)
-    score = Column(Integer, nullable=False)          # 1 – 10
-    strengths = Column(JSON, nullable=True)           # ["str1", "str2", …]
-    improvements = Column(JSON, nullable=True)        # ["imp1", "imp2", …]
+    score = Column(Integer, nullable=False)
+    strengths = Column(JSON, nullable=True)
+    improvements = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
 
-    # ── Relationships ─────────────────────────────────────────────────────────
     response = relationship("UserResponse", back_populates="feedback")
 
     def __repr__(self) -> str:

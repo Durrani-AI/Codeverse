@@ -1,14 +1,11 @@
-/* ═══════════════════════════════════════════════════════════════════════════
    Interview Results – post-interview analysis & review page
-   ═══════════════════════════════════════════════════════════════════════════
-   • Overall score with circular progress indicator
-   • Question list with user responses & AI feedback (strengths + improvements)
-   • Performance breakdown by topic / question type
-   • Comparison with previous interviews (visual bar chart)
-   • "Start Another Interview" button
-   • Share & Print / Export functionality
-   • Fully responsive with TypeScript
-   ═══════════════════════════════════════════════════════════════════════════ */
+   - Overall score with circular progress indicator
+   - Question list with user responses & AI feedback (strengths + improvements)
+   - Performance breakdown by topic / question type
+   - Comparison with previous interviews (visual bar chart)
+   - "Start Another Interview" button
+   - Share & Print / Export functionality
+   - Fully responsive with TypeScript
 
 "use client";
 
@@ -35,7 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import ProtectedRoute from "@/components/protected-route";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// Types
 
 interface ResultsState {
   session: InterviewSession | null;
@@ -46,7 +43,7 @@ interface ResultsState {
   error: string | null;
 }
 
-// ─── Circular progress component ─────────────────────────────────────────────
+// Circular progress component
 
 interface CircularScoreProps {
   score: number;
@@ -101,7 +98,7 @@ function CircularScore({ score, maxScore = 10, size = 160 }: CircularScoreProps)
   );
 }
 
-// ─── Simple horizontal bar chart for comparison ──────────────────────────────
+// Simple horizontal bar chart for comparison
 
 interface BarChartProps {
   data: { label: string; value: number; highlight?: boolean }[];
@@ -137,7 +134,7 @@ function HorizontalBarChart({ data, maxValue = 10 }: BarChartProps) {
   );
 }
 
-// ─── Page component ──────────────────────────────────────────────────────────
+// Page component
 
 export default function InterviewResultsPage() {
   const params = useParams<{ sessionId: string }>();
@@ -155,7 +152,7 @@ export default function InterviewResultsPage() {
   const [expandedQ, setExpandedQ] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // ── Fetch all data on mount ────────────────────────────────────────────────
+  // Fetch all data on mount
 
   useEffect(() => {
     async function load() {
@@ -210,7 +207,7 @@ export default function InterviewResultsPage() {
     load();
   }, [sessionId, router]);
 
-  // ── Share handler ──────────────────────────────────────────────────────────
+  // Share handler
 
   const handleShare = useCallback(async () => {
     const shareData = {
@@ -235,13 +232,13 @@ export default function InterviewResultsPage() {
     }
   }, [state.feedback, state.session]);
 
-  // ── Print / export ─────────────────────────────────────────────────────────
+  // Print / export
 
   const handlePrint = useCallback(() => {
     window.print();
   }, []);
 
-  // ── Derived data ───────────────────────────────────────────────────────────
+  // Derived data
 
   const feedback = state.feedback;
   const session = state.session;
@@ -275,7 +272,7 @@ export default function InterviewResultsPage() {
     return entries;
   }, [state.analytics, session, feedback]);
 
-  // ── Loading ────────────────────────────────────────────────────────────────
+  // Loading
 
   if (state.loading) {
     return (
@@ -288,7 +285,7 @@ export default function InterviewResultsPage() {
     );
   }
 
-  // ── Error ──────────────────────────────────────────────────────────────────
+  // Error
 
   if (state.error || !feedback || !session) {
     return (
@@ -313,7 +310,7 @@ export default function InterviewResultsPage() {
   return (
     <ProtectedRoute>
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8 space-y-10 animate-fade-in print:p-0">
-      {/* ═══ Header ═══════════════════════════════════════════════════════ */}
+      {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <button
@@ -341,7 +338,7 @@ export default function InterviewResultsPage() {
         </div>
       </header>
 
-      {/* ═══ Score overview ═══════════════════════════════════════════════ */}
+      {/* Score overview */}
       <section className="glass p-8 flex flex-col md:flex-row items-center gap-8">
         <CircularScore score={overallScore} />
 
@@ -374,7 +371,7 @@ export default function InterviewResultsPage() {
         </div>
       </section>
 
-      {/* ═══ Key strengths & improvements ═════════════════════════════════ */}
+      {/* Key strengths & improvements */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Strengths */}
         <section className="glass p-6 border-l-[3px] border-l-success space-y-3">
@@ -385,7 +382,7 @@ export default function InterviewResultsPage() {
             <ul className="space-y-2">
               {feedback.key_strengths.map((s, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-foreground">
-                  <span className="mt-0.5 text-success shrink-0">•</span>
+                  <span className="mt-0.5 text-success shrink-0">-</span>
                   {s}
                 </li>
               ))}
@@ -404,7 +401,7 @@ export default function InterviewResultsPage() {
             <ul className="space-y-2">
               {feedback.areas_for_improvement.map((s, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-foreground">
-                  <span className="mt-0.5 text-warning shrink-0">•</span>
+                  <span className="mt-0.5 text-warning shrink-0">-</span>
                   {s}
                 </li>
               ))}
@@ -415,7 +412,7 @@ export default function InterviewResultsPage() {
         </section>
       </div>
 
-      {/* ═══ Recommendations ══════════════════════════════════════════════ */}
+      {/* Recommendations */}
       {feedback.recommendations.length > 0 && (
         <section className="glass p-6 space-y-3">
           <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
@@ -432,7 +429,7 @@ export default function InterviewResultsPage() {
         </section>
       )}
 
-      {/* ═══ Per-question breakdown ═══════════════════════════════════════ */}
+      {/* Per-question breakdown */}
       <section className="space-y-4">
         <h3 className="text-lg font-semibold text-foreground tracking-tight">Question Breakdown</h3>
 
@@ -521,7 +518,7 @@ export default function InterviewResultsPage() {
                           <ul className="space-y-1">
                             {qf.strengths.map((s, i) => (
                               <li key={i} className="flex items-start gap-2 text-sm text-foreground">
-                                <span className="mt-0.5 text-success shrink-0">•</span>
+                                <span className="mt-0.5 text-success shrink-0">-</span>
                                 {s}
                               </li>
                             ))}
@@ -536,7 +533,7 @@ export default function InterviewResultsPage() {
                           <ul className="space-y-1">
                             {qf.improvements.map((s, i) => (
                               <li key={i} className="flex items-start gap-2 text-sm text-foreground">
-                                <span className="mt-0.5 text-warning shrink-0">•</span>
+                                <span className="mt-0.5 text-warning shrink-0">-</span>
                                 {s}
                               </li>
                             ))}
@@ -556,7 +553,7 @@ export default function InterviewResultsPage() {
         )}
       </section>
 
-      {/* ═══ Performance breakdown – bar chart ════════════════════════════ */}
+      {/* Performance breakdown – bar chart */}
       {individualScores.length > 0 && (
         <section className="glass p-6 space-y-4">
           <h3 className="text-base font-semibold text-foreground">Score by Question</h3>
@@ -564,7 +561,7 @@ export default function InterviewResultsPage() {
         </section>
       )}
 
-      {/* ═══ Comparison with previous interviews ═════════════════════════ */}
+      {/* Comparison with previous interviews */}
       {comparisonData.length > 1 && (
         <section className="glass p-6 space-y-4">
           <h3 className="text-base font-semibold text-foreground">
@@ -577,7 +574,7 @@ export default function InterviewResultsPage() {
         </section>
       )}
 
-      {/* ═══ Action buttons ═══════════════════════════════════════════════ */}
+      {/* Action buttons */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4 py-4 print:hidden">
         <Button variant="primary" size="lg" onClick={() => router.push("/dashboard")}>
           Try Again →

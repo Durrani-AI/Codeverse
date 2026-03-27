@@ -1,12 +1,13 @@
 """
-Authentication endpoints – register, login, profile.
+Authentication endpoints – register, login, profile, and password management.
 
 Uses passlib (bcrypt) for password hashing and python-jose for JWT tokens.
-Exposes a reusable ``get_current_user`` dependency for protecting other routes.
+Exposes reusable ``get_current_user`` / ``get_current_active_user`` dependencies
+that other routers can import to protect their endpoints.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -18,7 +19,7 @@ from jose import JWTError, jwt
 from app.config import settings
 from app.database import get_db
 from app.models import User
-from app.schemas import Token, UserCreate, UserLogin, UserResponse
+from app.schemas import PasswordChange, Token, UserCreate, UserLogin, UserResponse
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -29,9 +30,6 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Helpers
-# ══════════════════════════════════════════════════════════════════════════════
 def _hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
@@ -42,14 +40,15 @@ def _verify_password(plain: str, hashed: str) -> bool:
 
 def _create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.now(timezone.utc) + (
+        expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# JWT dependency – importable by other routers
-# ══════════════════════════════════════════════════════════════════════════════
+# --- JWT dependency (importable by other routers) ---
+
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
@@ -91,14 +90,12 @@ async def get_current_active_user(
     return current_user
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Register
-# ══════════════════════════════════════════════════════════════════════════════
+# --- Register ---
+
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(body: UserCreate, db: AsyncSession = Depends(get_db)):
     """Create a new user account."""
 
-    # Check duplicates
     result = await db.execute(
         select(User).where((User.email == body.email) | (User.username == body.username))
     )
@@ -117,9 +114,8 @@ async def register(body: UserCreate, db: AsyncSession = Depends(get_db)):
     return UserResponse.model_validate(user)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Login
-# ══════════════════════════════════════════════════════════════════════════════
+# --- Login ---
+
 @router.post("/login", response_model=Token)
 async def login(body: UserLogin, db: AsyncSession = Depends(get_db)):
     """Authenticate and return a JWT."""
@@ -134,10 +130,33 @@ async def login(body: UserLogin, db: AsyncSession = Depends(get_db)):
     return Token(access_token=token)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Profile (protected)
-# ══════════════════════════════════════════════════════════════════════════════
+# --- Profile ---
+
 @router.get("/me", response_model=UserResponse)
 async def get_profile(current_user: User = Depends(get_current_active_user)):
     """Return the authenticated user's profile."""
     return UserResponse.model_validate(current_user)
+
+
+# --- Password change ---
+
+@router.put("/password", status_code=status.HTTP_200_OK)
+async def change_password(
+    body: PasswordChange,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Change the authenticated user's password.
+
+    Requires the current password for verification before setting the new one.
+    """
+    if not _verify_password(body.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Current password is incorrect",
+        )
+
+    current_user.hashed_password = _hash_password(body.new_password)
+    await db.commit()
+    logger.info("Password changed for user %s", current_user.username)
+    return {"message": "Password updated successfully"}

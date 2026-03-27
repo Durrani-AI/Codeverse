@@ -1,11 +1,9 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   InterviewCard – displays a single interview session in a card layout
-   ═══════════════════════════════════════════════════════════════════════════
+﻿/*    InterviewCard – displays a single interview session in a card layout
+   
    Shows : interview_type · difficulty_level · status badge
            started_at + computed duration · score (if completed)
    Actions : Resume (in_progress) · View Details (completed)
-   Layout  : responsive – stacks on mobile, horizontal on desktop
-   ═══════════════════════════════════════════════════════════════════════════ */
+   Layout  : responsive – stacks on mobile, horizontal on desktop */
 
 "use client";
 
@@ -14,7 +12,7 @@ import { cn, formatDate, formatInterviewType, formatStatus, statusVariant } from
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-// ─── Props ───────────────────────────────────────────────────────────────────
+// Props
 
 export interface InterviewCardProps {
   /** The interview session data to render. */
@@ -29,7 +27,7 @@ export interface InterviewCardProps {
   className?: string;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// Helpers
 
 /** Compute a human-readable duration between two ISO date strings. */
 function computeDuration(start: string, end: string | null): string {
@@ -61,7 +59,7 @@ function difficultyColor(level: string): string {
   }
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// Component
 
 export function InterviewCard({
   session,
@@ -94,7 +92,7 @@ export function InterviewCard({
       )}
       aria-label={`${formatInterviewType(interview_type)} interview – ${formatStatus(status)}`}
     >
-      {/* ── Header row ─────────────────────────────────────────────────── */}
+      {/* Header row */}
       <div className="flex items-start justify-between gap-3">
         {/* Left: type + topic */}
         <div className="min-w-0 flex-1">
@@ -113,7 +111,7 @@ export function InterviewCard({
         <Badge variant={statusVariant(status)}>{formatStatus(status)}</Badge>
       </div>
 
-      {/* ── Meta row ───────────────────────────────────────────────────── */}
+      {/* Meta row */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-foreground-muted">
         {/* Difficulty */}
         <span className="flex items-center gap-1">
@@ -194,7 +192,7 @@ export function InterviewCard({
         </span>
       </div>
 
-      {/* ── Action row ─────────────────────────────────────────────────── */}
+      {/* Action row */}
       <div className="mt-auto flex flex-wrap items-center gap-2 pt-3 border-t border-surface-border/40">
         {isInProgress && onResume && (
           <Button
@@ -233,3 +231,4 @@ export function InterviewCard({
     </article>
   );
 }
+

@@ -1,14 +1,12 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   CodeEditor – rich code editing component for interview answers
-   ═══════════════════════════════════════════════════════════════════════════
-   • Uses Monaco Editor (@monaco-editor/react) when available
-   • Falls back to an enhanced <textarea> with line numbers
-   • Supports Python, JavaScript, Java language selection
-   • Character & word count display
-   • Auto-save drafts to localStorage
-   • Submit button with loading state
-   • Fully accessible with ARIA labels
-   ═══════════════════════════════════════════════════════════════════════════ */
+﻿/*    CodeEditor – rich code editing component for interview answers
+   
+   - Uses Monaco Editor (@monaco-editor/react) when available
+   - Falls back to an enhanced <textarea> with line numbers
+   - Supports Python, JavaScript, Java language selection
+   - Character & word count display
+   - Auto-save drafts to localStorage
+   - Submit button with loading state
+   - Fully accessible with ARIA labels */
 
 "use client";
 
@@ -34,7 +32,7 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ),
 });
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// Types
 
 export type SupportedLanguage = "python" | "javascript" | "java";
 
@@ -65,7 +63,7 @@ export interface CodeEditorProps {
   minHeight?: string;
 }
 
-// ─── Language metadata ───────────────────────────────────────────────────────
+// Language metadata
 
 const LANGUAGES: { value: SupportedLanguage; label: string }[] = [
   { value: "python", label: "Python" },
@@ -73,7 +71,7 @@ const LANGUAGES: { value: SupportedLanguage; label: string }[] = [
   { value: "java", label: "Java" },
 ];
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// Helpers
 
 function wordCount(text: string): number {
   return text.trim() === "" ? 0 : text.trim().split(/\s+/).length;
@@ -83,7 +81,7 @@ function lineCount(text: string): number {
   return text.split("\n").length;
 }
 
-// ─── Auto-save hook ──────────────────────────────────────────────────────────
+// Auto-save hook
 
 function useAutoSave(key: string | null, value: string) {
   const timer = useRef<ReturnType<typeof setTimeout>>();
@@ -112,7 +110,7 @@ export function clearDraft(key: string): void {
   }
 }
 
-// ─── Fallback textarea with line numbers ─────────────────────────────────────
+// Fallback textarea with line numbers
 
 interface TextareaEditorProps {
   value: string;
@@ -182,7 +180,7 @@ function TextareaEditor({
   );
 }
 
-// ─── Main CodeEditor ─────────────────────────────────────────────────────────
+// Main CodeEditor
 
 export function CodeEditor({
   value,
@@ -235,7 +233,7 @@ export function CodeEditor({
         className,
       )}
     >
-      {/* ── Toolbar ──────────────────────────────────────────────────── */}
+      {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border bg-surface-card px-3 py-2">
         {/* Language picker */}
         <div className="flex items-center gap-2">
@@ -278,7 +276,7 @@ export function CodeEditor({
         </div>
       </div>
 
-      {/* ── Editor area ──────────────────────────────────────────────── */}
+      {/* Editor area */}
       <MonacoEditor
         height={minHeight}
         language={language}
@@ -300,7 +298,7 @@ export function CodeEditor({
         }}
       />
 
-      {/* ── Footer / submit bar ──────────────────────────────────────── */}
+      {/* Footer / submit bar */}
       {onSubmit && (
         <div className="flex items-center justify-between border-t border-surface-border bg-surface-card px-3 py-2">
           {/* Left: hint text */}
@@ -334,3 +332,4 @@ export function CodeEditor({
 // ─── Export the fallback editor too, in case consumers want a lightweight version
 
 export { TextareaEditor };
+

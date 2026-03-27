@@ -11,7 +11,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        /* ── Refined purple accent (inspired by Bending Spoons) ────────── */
+        /* Refined purple accent (inspired by Bending Spoons)*/
         brand: {
           50:  "#f5f3ff",
           100: "#ede9fe",
@@ -25,7 +25,7 @@ const config: Config = {
           900: "#4c1d95",
           950: "#2e1065",
         },
-        /* ── Deep-dark surfaces ────────────────────────────────────────── */
+        /* Deep-dark surfaces*/
         surface: {
           DEFAULT:     "#08080d",  /* page background – near-black */
           alt:         "#0e0e14",  /* slightly lifted bg (navbar, sidebar) */
@@ -34,7 +34,7 @@ const config: Config = {
           input:       "#0c0c12",  /* input fields */
           border:      "#1e1e2a",  /* subtle border */
         },
-        /* ── Semantic colours ──────────────────────────────────────────── */
+        /* Semantic colours*/
         success: {
           DEFAULT: "#22c55e",
           light:   "rgba(34,197,94,0.10)",
@@ -47,7 +47,7 @@ const config: Config = {
           DEFAULT: "#eab308",
           light:   "rgba(234,179,8,0.10)",
         },
-        /* ── Text ──────────────────────────────────────────────────────── */
+        /* Text*/
         foreground: {
           DEFAULT: "#e8e8ed",  /* primary text – crisp white-ish */
           muted:   "#71717a",  /* subdued descriptive text */

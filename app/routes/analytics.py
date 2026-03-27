@@ -1,9 +1,9 @@
 """
-Analytics endpoints – overview stats, performance breakdowns, trends.
+Analytics endpoints – overview stats, performance breakdowns, and trends.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import and_, func, select
@@ -61,7 +61,7 @@ async def overview(
         )
     ).scalar() or 0
 
-    # ── Performance by type ────────────────────────────────────────────────
+    # Performance by type
     type_result = await db.execute(
         select(
             InterviewSession.interview_type,
@@ -84,7 +84,7 @@ async def overview(
         for row in type_result
     ]
 
-    # ── Average score across all feedbacks ────────────────────────────────
+    # Average score across all feedbacks
     avg_score_result = await db.execute(
         select(func.avg(Feedback.score))
         .join(UserResponseModel, UserResponseModel.id == Feedback.response_id)
@@ -94,7 +94,7 @@ async def overview(
     )
     avg_score = avg_score_result.scalar() or 0.0
 
-    # ── Improvement trend (compare first-half vs second-half scores) ─────
+    # Improvement trend: compare first-half vs second-half of scores
     scores_result = await db.execute(
         select(Feedback.score)
         .join(UserResponseModel, UserResponseModel.id == Feedback.response_id)
@@ -135,9 +135,9 @@ async def recent_activity(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Sessions from the last N days, returned as structured RecentSession objects."""
+    """Sessions from the last N days as structured RecentSession objects."""
 
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     result = await db.execute(
         select(InterviewSession)
         .where(

@@ -1,14 +1,10 @@
 """
-Database connection and session management.
+Async database engine, session factory, and lifecycle utilities.
 
-- Uses SQLite + aiosqlite for local development.
-- Easily switchable to PostgreSQL by changing DATABASE_URL to
-  ``postgresql+asyncpg://user:pass@host:5432/dbname``
-- Async engine with connection-health pre-ping.
-- Proper connection pooling (pool_size / max_overflow for non-SQLite).
-- ``get_db`` FastAPI dependency with auto commit / rollback.
-- ``create_tables``  initialise all ORM tables.
-- ``check_db_connection`` lightweight connectivity probe.
+Supports both SQLite (aiosqlite) for development and PostgreSQL (asyncpg) for
+production. URL normalization and query parameter sanitization happen at import
+time so the rest of the app can use the engine/session without worrying about
+dialect quirks.
 """
 
 import asyncio
@@ -28,29 +24,25 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# ── Normalise DATABASE_URL for async drivers ──────────────────────────────────
-# Render (and many cloud hosts) provide postgresql:// but SQLAlchemy async
-# requires the +asyncpg dialect marker.
+# --- Normalize DATABASE_URL for async drivers ---
+# Many cloud hosts supply postgresql:// but SQLAlchemy async needs +asyncpg.
 _db_url = settings.DATABASE_URL
 if _db_url.startswith("postgres://"):
     _db_url = _db_url.replace("postgres://", "postgresql+asyncpg://", 1)
 elif _db_url.startswith("postgresql://"):
     _db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-# asyncpg does NOT understand several libpq query parameters.
-# - "sslmode" → convert to "ssl" (asyncpg's equivalent)
-# - "channel_binding" → remove entirely (not supported by asyncpg)
+# asyncpg does not understand several libpq query parameters.
+# Convert sslmode -> ssl and strip unsupported ones.
 if "asyncpg" in _db_url:
     _parsed = urlparse(_db_url)
     _qs = parse_qs(_parsed.query)
     _changed = False
-    # Convert sslmode → ssl
     if "sslmode" in _qs:
         _ssl_val = _qs.pop("sslmode")[0]
         _qs.setdefault("ssl", [_ssl_val])
         _changed = True
-        logger.info("Converted sslmode → ssl in DATABASE_URL for asyncpg")
-    # Remove unsupported params
+        logger.info("Converted sslmode -> ssl in DATABASE_URL for asyncpg")
     for _unsupported in ("channel_binding", "options"):
         if _unsupported in _qs:
             _qs.pop(_unsupported)
@@ -60,29 +52,25 @@ if "asyncpg" in _db_url:
         _new_query = urlencode(_qs, doseq=True)
         _db_url = urlunparse(_parsed._replace(query=_new_query))
 
-# ── Engine kwargs ─────────────────────────────────────────────────────────────
-# SQLite doesn't support pool_size / max_overflow, so only apply them for
-# server-class databases (PostgreSQL, MySQL, …).
+# --- Engine kwargs ---
 _is_sqlite = _db_url.startswith("sqlite")
 
 _engine_kwargs: dict = dict(
     echo=settings.DEBUG,
     future=True,
-    pool_pre_ping=True,          # detect stale connections before use
+    pool_pre_ping=True,
 )
 
 if not _is_sqlite:
     _engine_kwargs.update(
-        pool_size=5,             # persistent connections kept in the pool
-        max_overflow=10,         # extra connections allowed beyond pool_size
-        pool_timeout=30,         # seconds to wait for a free connection
-        pool_recycle=1800,       # recycle connections after 30 min
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=30,
+        pool_recycle=1800,
     )
 
-# ── Async engine ──────────────────────────────────────────────────────────────
 engine = create_async_engine(_db_url, **_engine_kwargs)
 
-# ── Session factory ───────────────────────────────────────────────────────────
 AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,
@@ -92,20 +80,15 @@ AsyncSessionLocal = async_sessionmaker(
 )
 
 
-# ── Declarative base ─────────────────────────────────────────────────────────
 class Base(DeclarativeBase):
-    """Base class for all ORM models."""
+    """Declarative base for all ORM models."""
     pass
 
 
-# ── FastAPI dependency ────────────────────────────────────────────────────────
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """
-    Yield an async DB session.
+    """FastAPI dependency that yields a scoped async DB session.
 
-    * On normal exit the transaction is **committed**.
-    * On exception the transaction is **rolled back** and the error re-raised.
-    * The session is always closed in ``finally``.
+    Commits on success, rolls back on exception, always closes.
     """
     session = AsyncSessionLocal()
     try:
@@ -118,13 +101,11 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         await session.close()
 
 
-# ── Table creation ────────────────────────────────────────────────────────────
 async def create_tables(retries: int = 5, delay: float = 2.0) -> None:
-    """Create all tables defined in ``Base.metadata``.
+    """Create all ORM-defined tables with retry logic.
 
-    Retries up to *retries* times with exponential back-off so that cloud
-    databases (e.g. Render PostgreSQL) that need a few seconds to become
-    reachable don't crash the app on first attempt.
+    Retries with exponential back-off so cloud databases that need a few
+    seconds to spin up don't crash the app on the first attempt.
     """
     for attempt in range(1, retries + 1):
         try:
@@ -138,18 +119,17 @@ async def create_tables(retries: int = 5, delay: float = 2.0) -> None:
                 attempt, retries, exc,
             )
             if attempt == retries:
-                logger.error("All %d DB connection attempts failed – giving up", retries)
+                logger.error("All %d DB connection attempts failed", retries)
                 raise
-            await asyncio.sleep(delay * attempt)  # exponential-ish back-off
+            await asyncio.sleep(delay * attempt)
 
 
-# Keep the old name as alias so callers that imported ``init_db`` still work.
+# Backwards-compatible alias
 init_db = create_tables
 
 
-# ── Health check helper ──────────────────────────────────────────────────────
 async def check_db_connection() -> bool:
-    """Return ``True`` if the database is reachable, ``False`` otherwise."""
+    """Lightweight connectivity probe. Returns True if the database is reachable."""
     try:
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
@@ -159,8 +139,7 @@ async def check_db_connection() -> bool:
         return False
 
 
-# ── Cleanup ───────────────────────────────────────────────────────────────────
 async def close_db() -> None:
-    """Dispose of the engine's connection pool (call on shutdown)."""
+    """Dispose of the engine's connection pool (call on app shutdown)."""
     await engine.dispose()
     logger.info("Database engine disposed")

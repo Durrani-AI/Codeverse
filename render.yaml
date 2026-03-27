@@ -1,5 +1,5 @@
-# ─── Render Blueprint – auto-provisions backend + database ─────────────────
-# Deploy: connect your GitHub repo to Render → it reads this file automatically.
+# Render Blueprint – auto-provisions backend + database
+# Deploy: connect your GitHub repo to Render, it reads this file automatically.
 
 databases:
   - name: interview-db

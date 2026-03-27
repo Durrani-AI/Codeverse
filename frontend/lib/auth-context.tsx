@@ -1,15 +1,15 @@
 "use client";
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   Auth Context – shared authentication state for the whole app
-   ═══════════════════════════════════════════════════════════════════════════
-   Provides:
-   • user          – current User object (null while loading / logged out)
-   • isLoading     – true while we're checking the token on mount
-   • isAuthenticated – shorthand for !!user
-   • login(token)  – store token + fetch profile
-   • logout()      – clear token + redirect to /login
-   ═══════════════════════════════════════════════════════════════════════════ */
+/*
+ * Auth Context – shared authentication state for the whole app.
+ *
+ * Provides:
+ * - user: current User object (null while loading / logged out)
+ * - isLoading: true while checking the token on mount
+ * - isAuthenticated: shorthand for !!user
+ * - login(token): store token + fetch profile
+ * - logout(): clear token + redirect to /login
+ */
 
 import {
   createContext,
@@ -25,7 +25,7 @@ import { useRouter } from "next/navigation";
 import type { User } from "@/types";
 import { getToken, setToken, clearToken, getMe } from "@/lib/api";
 
-// ─── Context shape ───────────────────────────────────────────────────────────
+// Context shape
 
 interface AuthContextValue {
   user: User | null;
@@ -37,7 +37,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-// ─── Provider ────────────────────────────────────────────────────────────────
+// Provider
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -119,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// ─── Hook ────────────────────────────────────────────────────────────────────
+// Hook
 
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);

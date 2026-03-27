@@ -1,16 +1,13 @@
-/* ═══════════════════════════════════════════════════════════════════════════
    Interview Session – live interview page
-   ═══════════════════════════════════════════════════════════════════════════
-   • Gets sessionId from URL params
-   • Displays current question prominently
-   • Shows CodeEditor for coding / textarea for behavioral & system_design
-   • Live elapsed-time timer
-   • Submit Answer & Skip Question buttons
-   • Question counter (e.g. "Question 2 of 10")
-   • Shows AI feedback inline after each submission
-   • Navigates to results page when session completes
-   • Full loading, error, and empty states
-   ═══════════════════════════════════════════════════════════════════════════ */
+   - Gets sessionId from URL params
+   - Displays current question prominently
+   - Shows CodeEditor for coding / textarea for behavioral & system_design
+   - Live elapsed-time timer
+   - Submit Answer & Skip Question buttons
+   - Question counter (e.g. "Question 2 of 10")
+   - Shows AI feedback inline after each submission
+   - Navigates to results page when session completes
+   - Full loading, error, and empty states
 
 "use client";
 
@@ -29,7 +26,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { CodeEditor, type SupportedLanguage } from "@/components/code-editor";
 import ProtectedRoute from "@/components/protected-route";
 
-// ─── State types ─────────────────────────────────────────────────────────────
+// State types
 
 interface SessionState {
   session: InterviewSession | null;
@@ -45,7 +42,7 @@ interface SubmissionState {
   isComplete: boolean;
 }
 
-// ─── Elapsed-time hook ───────────────────────────────────────────────────────
+// Elapsed-time hook
 
 function useElapsedTime(startedAt: string | null, active: boolean): string {
   const [elapsed, setElapsed] = useState("00:00");
@@ -75,14 +72,14 @@ function useElapsedTime(startedAt: string | null, active: boolean): string {
   return elapsed;
 }
 
-// ─── Page component ──────────────────────────────────────────────────────────
+// Page component
 
 export default function InterviewSessionPage() {
   const params = useParams<{ sessionId: string }>();
   const sessionId = params.sessionId;
   const router = useRouter();
 
-  // ── Core state ─────────────────────────────────────────────────────────────
+  // Core state
   const [state, setState] = useState<SessionState>({
     session: null,
     currentQuestion: null,
@@ -97,21 +94,21 @@ export default function InterviewSessionPage() {
     isComplete: false,
   });
 
-  // ── Editor state ───────────────────────────────────────────────────────────
+  // Editor state
   const [answerText, setAnswerText] = useState("");
   const [codeText, setCodeText] = useState("");
   const [language, setLanguage] = useState<SupportedLanguage>("python");
 
-  // ── Timer ──────────────────────────────────────────────────────────────────
+  // Timer
   const elapsed = useElapsedTime(
     state.session?.started_at ?? null,
     state.session?.status === "in_progress",
   );
 
-  // ── Derived ────────────────────────────────────────────────────────────────
+  // Derived
   const isCoding = state.session?.interview_type === "coding";
 
-  // ── Fetch session on mount ─────────────────────────────────────────────────
+  // Fetch session on mount
   useEffect(() => {
     async function load() {
       setState((s) => ({ ...s, loading: true, error: null }));
@@ -146,7 +143,7 @@ export default function InterviewSessionPage() {
     load();
   }, [sessionId, router]);
 
-  // ── Submit answer ──────────────────────────────────────────────────────────
+  // Submit answer
   const handleSubmit = useCallback(async () => {
     const question = state.currentQuestion;
     if (!question) return;
@@ -189,7 +186,7 @@ export default function InterviewSessionPage() {
     }
   }, [state.currentQuestion, sessionId, answerText, codeText, isCoding, router]);
 
-  // ── Skip question (submit empty) ──────────────────────────────────────────
+  // Skip question (submit empty)
   const handleSkip = useCallback(async () => {
     const question = state.currentQuestion;
     if (!question) return;
@@ -225,7 +222,7 @@ export default function InterviewSessionPage() {
     }
   }, [state.currentQuestion, sessionId, router]);
 
-  // ── Loading state ──────────────────────────────────────────────────────────
+  // Loading state
   if (state.loading) {
     return (
       <ProtectedRoute>
@@ -237,7 +234,7 @@ export default function InterviewSessionPage() {
     );
   }
 
-  // ── Error state ────────────────────────────────────────────────────────────
+  // Error state
   if (state.error && !state.session) {
     return (
       <ProtectedRoute>
@@ -260,7 +257,7 @@ export default function InterviewSessionPage() {
   return (
     <ProtectedRoute>
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-6 animate-fade-in">
-      {/* ═══ Top bar ══════════════════════════════════════════════════════ */}
+      {/* Top bar */}
       <header className="glass flex flex-wrap items-center justify-between gap-4 py-3 px-5">
         {/* Left – session info */}
         <div className="flex items-center gap-3">
@@ -296,7 +293,7 @@ export default function InterviewSessionPage() {
         </div>
       )}
 
-      {/* ═══ Question card ════════════════════════════════════════════════ */}
+      {/* Question card */}
       {currentQuestion && (
         <section className="question-card space-y-2">
           <div className="flex items-center gap-2 text-xs text-foreground-muted">
@@ -308,7 +305,7 @@ export default function InterviewSessionPage() {
         </section>
       )}
 
-      {/* ═══ Answer area ══════════════════════════════════════════════════ */}
+      {/* Answer area */}
       {currentQuestion && (
         <section className="space-y-4">
           {/* Text answer (always shown) */}
@@ -371,7 +368,7 @@ export default function InterviewSessionPage() {
 
 
 
-      {/* ═══ Progress bar ═════════════════════════════════════════════════ */}
+      {/* Progress bar */}
       <div className="space-y-1">
         <div className="flex justify-between text-xs text-foreground-muted">
           <span>Progress</span>

@@ -1,11 +1,11 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   API client – Axios-based typed HTTP client for the FastAPI backend
-   ═══════════════════════════════════════════════════════════════════════════
-   • Axios instance with base URL + JSON defaults
-   • Request interceptor  → attaches Bearer token automatically
-   • Response interceptor → normalises errors, handles 401 (auto-logout)
-   • Every endpoint function is fully typed with interfaces from @/types
-   ═══════════════════════════════════════════════════════════════════════════ */
+/*
+ * API client – Axios-based typed HTTP client for the FastAPI backend.
+ *
+ * - Axios instance with base URL + JSON defaults
+ * - Request interceptor: attaches Bearer token automatically
+ * - Response interceptor: normalises errors, handles 401 (auto-logout)
+ * - Every endpoint function is fully typed with interfaces from @/types
+ */
 
 import axios, {
   type AxiosError,
@@ -31,12 +31,12 @@ import type {
   User,
 } from "@/types";
 
-// ─── Configuration ───────────────────────────────────────────────────────────
+// Configuration
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
 
-// ─── Token helpers ───────────────────────────────────────────────────────────
+// Token helpers
 
 let accessToken: string | null = null;
 
@@ -62,7 +62,7 @@ export function clearToken(): void {
   }
 }
 
-// ─── Axios instance ──────────────────────────────────────────────────────────
+// Axios instance──
 
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -73,7 +73,7 @@ const api: AxiosInstance = axios.create({
   timeout: 60_000, // 60 s – generous for Render free-tier cold starts + AI responses
 });
 
-// ─── Request interceptor – attach Bearer token ──────────────────────────────
+// Request interceptor – attach Bearer token
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -86,7 +86,7 @@ api.interceptors.request.use(
   (error: AxiosError) => Promise.reject(error),
 );
 
-// ─── Response interceptor – normalise errors & handle 401 ───────────────────
+// Response interceptor – normalise errors & handle 401────
 
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
@@ -133,7 +133,7 @@ api.interceptors.response.use(
   },
 );
 
-// ─── Generic typed helper ────────────────────────────────────────────────────
+// Generic typed helper
 
 async function request<T>(
   method: "GET" | "POST" | "PUT" | "DELETE",
@@ -159,9 +159,7 @@ async function request<T>(
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  AUTH ENDPOINTS
-// ═══════════════════════════════════════════════════════════════════════════
+// Auth endpoints
 
 /** Register a new user account. */
 export async function register(body: RegisterRequest) {
@@ -187,9 +185,7 @@ export function logout(): void {
   clearToken();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  INTERVIEW ENDPOINTS
-// ═══════════════════════════════════════════════════════════════════════════
+// Interview endpoints
 
 /** Start a new interview session. */
 export async function startInterview(body: StartInterviewRequest) {
@@ -230,13 +226,11 @@ export async function getSession(sessionId: string) {
 export async function cancelSession(sessionId: string) {
   return request<{ message: string }>(
     "DELETE",
-    `/interviews/${sessionId}/cancel`,
+    `/interviews/${sessionId}`,
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  ANALYTICS ENDPOINTS
-// ═══════════════════════════════════════════════════════════════════════════
+// Analytics endpoints
 
 /** Get analytics overview for the authenticated user. */
 export async function getAnalyticsOverview() {
@@ -248,6 +242,6 @@ export async function getRecentActivity() {
   return request<RecentSession[]>("GET", "/analytics/recent-activity");
 }
 
-// ─── Export the raw axios instance for advanced use cases ─────────────────
+// Export the raw axios instance for advanced use cases
 
 export default api;

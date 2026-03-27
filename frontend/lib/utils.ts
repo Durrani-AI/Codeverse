@@ -1,6 +1,4 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   Utility helpers for the frontend
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* Utility helpers for the frontend */
 
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";

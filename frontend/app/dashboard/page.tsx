@@ -1,12 +1,10 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   Dashboard / Home – authenticated landing page
-   ═══════════════════════════════════════════════════════════════════════════
-   • Welcome message with user's name
-   • "Start New Interview" panel with type + difficulty selectors
-   • Quick stats row (total sessions, avg score, trend)
-   • Recent interview sessions in a responsive grid (InterviewCard)
-   • Full loading skeleton & error states
-   ═══════════════════════════════════════════════════════════════════════════ */
+﻿/*    Dashboard / Home – authenticated landing page
+   
+   - Welcome message with user's name
+   - "Start New Interview" panel with type + difficulty selectors
+   - Quick stats row (total sessions, avg score, trend)
+   - Recent interview sessions in a responsive grid (InterviewCard)
+   - Full loading skeleton & error states */
 
 "use client";
 
@@ -30,7 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { InterviewCard } from "@/components/interview-card";
 import ProtectedRoute from "@/components/protected-route";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// Types
 
 interface DashboardState {
   analytics: AnalyticsOverview | null;
@@ -39,7 +37,7 @@ interface DashboardState {
   error: string | null;
 }
 
-// ─── Interview type & difficulty options ──────────────────────────────────────
+// Interview type & difficulty options
 
 const INTERVIEW_TYPES: { value: InterviewType; label: string; icon: string }[] = [
   { value: "coding", label: "Coding", icon: "⌨" },
@@ -53,7 +51,7 @@ const DIFFICULTY_LEVELS: { value: DifficultyLevel; label: string; color: string 
   { value: "hard", label: "Hard", color: "text-danger" },
 ];
 
-// ─── Skeleton loader ─────────────────────────────────────────────────────────
+// Skeleton loader
 
 function DashboardSkeleton() {
   return (
@@ -87,7 +85,7 @@ function DashboardSkeleton() {
   );
 }
 
-// ─── Page component ──────────────────────────────────────────────────────────
+// Page component
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -106,7 +104,7 @@ export default function DashboardPage() {
   const [topic, setTopic] = useState("");
   const [starting, setStarting] = useState(false);
 
-  // ── Fetch data on mount ────────────────────────────────────────────────────
+  // Fetch data on mount
 
   useEffect(() => {
     async function load() {
@@ -132,7 +130,7 @@ export default function DashboardPage() {
     load();
   }, []);
 
-  // ── Start a new interview ──────────────────────────────────────────────────
+  // Start a new interview
 
   const handleStart = useCallback(async () => {
     setStarting(true);
@@ -148,7 +146,7 @@ export default function DashboardPage() {
     }
   }, [selectedType, selectedDifficulty, topic, router]);
 
-  // ── Navigation helpers ─────────────────────────────────────────────────────
+  // Navigation helpers
 
   const handleResume = useCallback(
     (id: string) => router.push(`/interview/${id}`),
@@ -160,7 +158,7 @@ export default function DashboardPage() {
     [router],
   );
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // Render
 
   if (state.loading) {
     return (
@@ -194,7 +192,7 @@ export default function DashboardPage() {
   return (
     <ProtectedRoute>
     <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 space-y-10 animate-fade-in">
-      {/* ═══ Welcome header ═══════════════════════════════════════════════ */}
+      {/*  Welcome header */}
       <header>
         <h1 className="text-3xl font-bold tracking-tight text-foreground">
           Welcome back, <span className="text-accent">{user?.username ?? ""}</span>
@@ -204,7 +202,7 @@ export default function DashboardPage() {
         </p>
       </header>
 
-      {/* ═══ Quick stats ══════════════════════════════════════════════════ */}
+      {/*  Quick stats */}
       {analytics && (
         <section aria-label="Quick stats" className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="stat-card">
@@ -246,7 +244,7 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {/* ═══ Start New Interview ══════════════════════════════════════════ */}
+      {/*  Start New Interview */}
       <section aria-label="Start new interview" className="glass p-6 space-y-6">
         <h2 className="text-lg font-semibold text-foreground tracking-tight">Start New Interview</h2>
 
@@ -327,7 +325,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* ═══ Recent Interview Sessions ════════════════════════════════════ */}
+      {/*  Recent Interview Sessions */}
       <section aria-label="Recent interviews" className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground tracking-tight">Recent Interviews</h2>
@@ -358,7 +356,7 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* ═══ Performance by type (compact) ════════════════════════════════ */}
+      {/*  Performance by type (compact) */}
       {analytics && analytics.by_type.length > 0 && (
         <section aria-label="Performance by type" className="glass p-6 space-y-4">
           <h2 className="text-lg font-semibold text-foreground tracking-tight">Performance by Type</h2>
@@ -399,3 +397,4 @@ export default function DashboardPage() {
     </ProtectedRoute>
   );
 }
+
