@@ -140,13 +140,20 @@ class InterviewSessionCreate(BaseModel):
         description="Subject area (e.g. Python, Databases, Leadership)",
         examples=["Python"],
     )
+    programming_language: Optional[str] = Field(
+        None,
+        max_length=50,
+        description="Programming language for coding interviews (e.g. Python, Java, C++)",
+        examples=["Python"],
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "interview_type": "coding",
                 "difficulty_level": "medium",
-                "topic": "Python",
+                "topic": "Arrays and Strings",
+                "programming_language": "Python",
             }
         }
     )
@@ -165,6 +172,7 @@ class InterviewSessionResponse(BaseModel):
     difficulty_level: DifficultyLevel = Field(..., examples=["medium"])
     status: SessionStatus = Field(..., examples=["in_progress"])
     topic: Optional[str] = Field(None, examples=["Python"])
+    programming_language: Optional[str] = Field(None, examples=["Python"])
     started_at: datetime
     completed_at: Optional[datetime] = None
     questions: List[QuestionResponse] = Field(default_factory=list)
@@ -185,6 +193,7 @@ class InterviewSessionResponse(BaseModel):
             difficulty_level=obj.difficulty_level,
             status=obj.status,
             topic=obj.topic,
+            programming_language=getattr(obj, 'programming_language', None),
             started_at=obj.started_at,
             completed_at=obj.completed_at,
             questions=questions,
@@ -204,6 +213,7 @@ class InterviewStartResponse(BaseModel):
     interview_type: InterviewType = Field(..., examples=["coding"])
     difficulty_level: DifficultyLevel = Field(..., examples=["medium"])
     topic: str = Field(..., examples=["Python"])
+    programming_language: Optional[str] = Field(None, examples=["Python"])
     status: SessionStatus = Field(..., examples=["in_progress"])
     started_at: datetime
     first_question: QuestionResponse

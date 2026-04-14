@@ -1,4 +1,4 @@
-﻿/*    TypeScript interfaces for the AI Interview Platform */
+/*    TypeScript interfaces for the AI Interview Platform */
 
 // Enums
 
@@ -27,6 +27,7 @@ export interface InterviewSession {
   difficulty_level: DifficultyLevel;
   status: SessionStatus;
   topic: string | null;
+  programming_language: string | null;
   started_at: string;
   completed_at: string | null;
   questions: Question[];
@@ -109,6 +110,7 @@ export interface StartInterviewRequest {
   interview_type: InterviewType;
   difficulty_level: DifficultyLevel;
   topic: string;
+  programming_language?: string;
   num_questions?: number;
 }
 
@@ -130,6 +132,7 @@ export interface InterviewStartResponse {
   interview_type: InterviewType;
   difficulty_level: DifficultyLevel;
   topic: string;
+  programming_language: string | null;
   status: SessionStatus;
   started_at: string;
   first_question: Question;

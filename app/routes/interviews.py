@@ -115,6 +115,7 @@ async def start_interview(
             difficulty_level=request.difficulty_level,
             status=SessionStatus.IN_PROGRESS,
             topic=request.topic,
+            programming_language=request.programming_language,
         )
         db.add(session)
         await db.flush()
@@ -128,6 +129,7 @@ async def start_interview(
             interview_type=request.interview_type.value,
             difficulty=request.difficulty_level.value,
             topic=request.topic,
+            programming_language=request.programming_language,
         )
     except ConnectionError as exc:
         await db.rollback()
@@ -157,6 +159,7 @@ async def start_interview(
         interview_type=session.interview_type,
         difficulty_level=session.difficulty_level,
         topic=session.topic or "",
+        programming_language=session.programming_language,
         status=session.status,
         started_at=session.started_at,
         first_question=QuestionOut.model_validate(question),
@@ -219,6 +222,7 @@ async def submit_answer(
         user_answer=body.response_text,
         interview_type=session.interview_type.value,
         difficulty=session.difficulty_level.value,
+        programming_language=session.programming_language,
     )
 
     fb = Feedback(
@@ -246,6 +250,7 @@ async def submit_answer(
                 interview_type=session.interview_type.value,
                 difficulty=session.difficulty_level.value,
                 topic=session.topic or "General",
+                programming_language=session.programming_language,
             )
             next_q = Question(
                 session_id=session.id,
@@ -351,6 +356,7 @@ async def session_feedback(
             difficulty=session.difficulty_level.value,
             topic=session.topic or "General",
             qa_pairs=qa_pairs,
+            programming_language=session.programming_language,
         )
     except (ConnectionError, RuntimeError) as exc:
         raise HTTPException(

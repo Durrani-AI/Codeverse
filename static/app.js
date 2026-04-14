@@ -13,6 +13,7 @@ let nextQuestion = null;      // buffered next question from answer response
 let questionsAnswered = 0;
 let totalQuestions = 5;
 let isComplete = false;
+let currentLanguage = null;   // selected programming language for coding interviews
 
 // Helpers
 function $(id) { return document.getElementById(id); }
@@ -216,15 +217,17 @@ async function loadHistory() {
     const { ok, data } = await api("/interviews/");
     const list = $("history-list");
     if (ok && data.length > 0) {
-        list.innerHTML = data.map(s => `
+        list.innerHTML = data.map(s => {
+            const langLabel = s.programming_language ? ` (${s.programming_language})` : '';
+            return `
             <div class="session-item" onclick="viewSession('${s.id}', '${s.status}')">
                 <div class="session-info">
-                    <span class="session-type">${s.interview_type} – ${s.topic || 'General'}</span>
+                    <span class="session-type">${s.interview_type}${langLabel} – ${s.topic || 'General'}</span>
                     <span class="session-detail">${s.difficulty_level} · ${s.questions_count} questions · ${formatDate(s.started_at)}</span>
                 </div>
                 <div class="session-status">${statusBadge(s.status)}</div>
             </div>
-        `).join("");
+        `}).join("");
     } else {
         list.innerHTML = '<p class="muted">No interview sessions yet.</p>';
     }
@@ -249,6 +252,7 @@ async function viewSession(sessionId, status) {
 function resumeSession(session) {
     currentSessionId = session.id;
     questionsAnswered = session.questions?.length || 0;
+    currentLanguage = session.programming_language || null;
     // Find last unanswered question (question with no response)
     const questions = session.questions || [];
     const lastQ = questions[questions.length - 1];
@@ -256,22 +260,44 @@ function resumeSession(session) {
         currentQuestionId = lastQ.id;
         displayQuestion(lastQ);
     }
-    $("interview-title").textContent = `${session.interview_type} Interview`;
+    const langLabel = currentLanguage ? ` (${currentLanguage})` : "";
+    $("interview-title").textContent = `${session.interview_type} Interview${langLabel}`;
     $("interview-meta").textContent = `${session.difficulty_level} · ${session.topic || "General"}`;
     $("interview-progress").textContent = `Q${questionsAnswered}`;
     navigateToInterview();
+}
+
+// Toggle visibility of programming language selector based on interview type
+function toggleLanguageSelector() {
+    const type = $("interview-type").value;
+    const langGroup = $("language-group");
+    const langSelect = $("programming-language");
+    if (type === "coding") {
+        langGroup.style.display = "";
+        langSelect.required = true;
+    } else {
+        langGroup.style.display = "none";
+        langSelect.required = false;
+        langSelect.value = "";
+    }
 }
 
 // Start Interview
 async function handleStartInterview(e) {
     e.preventDefault();
     $("start-interview-error").textContent = "";
+
+    const interviewType = $("interview-type").value;
+    const programmingLanguage = interviewType === "coding" ? $("programming-language").value : null;
+
     const body = {
-        interview_type: $("interview-type").value,
+        interview_type: interviewType,
         difficulty_level: $("interview-difficulty").value,
         topic: $("interview-topic").value.trim(),
         num_questions: parseInt($("interview-num-questions").value) || 5,
     };
+    if (programmingLanguage) body.programming_language = programmingLanguage;
+
     $("btn-start-interview").disabled = true;
     showLoading("Starting interview... AI is generating your first question.");
 
@@ -294,11 +320,13 @@ async function handleStartInterview(e) {
     totalQuestions = body.num_questions;
     isComplete = false;
     nextQuestion = null;
+    currentLanguage = data.programming_language || null;
 
     const firstQ = data.first_question;
     currentQuestionId = firstQ.id;
 
-    $("interview-title").textContent = `${data.interview_type} Interview`;
+    const langLabel = currentLanguage ? ` (${currentLanguage})` : "";
+    $("interview-title").textContent = `${data.interview_type} Interview${langLabel}`;
     $("interview-meta").textContent = `${data.difficulty_level} · ${data.topic}`;
     $("interview-progress").textContent = "Q1";
 

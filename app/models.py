@@ -105,6 +105,7 @@ class InterviewSession(Base):
         SQLEnum(SessionStatus), default=SessionStatus.IN_PROGRESS, nullable=False
     )
     topic = Column(String(255), nullable=True)
+    programming_language = Column(String(50), nullable=True)
     started_at = Column(DateTime, default=func.now(), nullable=False)
     completed_at = Column(DateTime, nullable=True)
 

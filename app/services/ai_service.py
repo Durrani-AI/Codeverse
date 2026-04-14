@@ -87,19 +87,44 @@ def with_retry(
 
 # --- Prompt templates (one per interview type) ---
 
+# Generic coding prompt (no specific language)
+_CODING_PROMPT_GENERIC = (
+    "You are a senior software engineer conducting a {difficulty} level "
+    "technical coding interview.\nTopic: {topic}\n\n"
+    "{previous_context}"
+    "Generate exactly ONE clear and concise coding interview question.\n"
+    "Requirements:\n"
+    "- Appropriate for {difficulty} difficulty\n"
+    "- Focus on practical coding and problem-solving\n"
+    "- Include a brief problem statement with example input/output if applicable\n"
+    "- Solvable within 15-20 minutes\n\n"
+    "Return ONLY the question text. No answer, hints, or preamble."
+)
+
+# Language-specific coding prompt
+_CODING_PROMPT_LANG = (
+    "You are a senior software engineer conducting a {difficulty} level "
+    "technical coding interview specifically for {language}.\n"
+    "Topic: {topic}\n\n"
+    "{previous_context}"
+    "Generate exactly ONE clear and concise coding interview question "
+    "that is SPECIFIC to {language}.\n"
+    "Requirements:\n"
+    "- The question MUST be tailored to {language} — use its native syntax, "
+    "standard library, built-in data structures, and language-specific idioms\n"
+    "- Expect the candidate to write their solution in {language} only\n"
+    "- Include example input/output using {language} conventions "
+    "(e.g. {language}-style variable naming, type annotations if applicable)\n"
+    "- Test knowledge of {language}-specific features such as: "
+    "language-specific built-in functions, standard library modules, "
+    "memory model, concurrency primitives, or unique language constructs\n"
+    "- Appropriate for {difficulty} difficulty\n"
+    "- Solvable within 15-20 minutes\n\n"
+    "Return ONLY the question text. No answer, hints, or preamble."
+)
+
 INTERVIEW_PROMPTS: dict[str, str] = {
-    "coding": (
-        "You are a senior software engineer conducting a {difficulty} level "
-        "technical coding interview.\nTopic: {topic}\n\n"
-        "{previous_context}"
-        "Generate exactly ONE clear and concise coding interview question.\n"
-        "Requirements:\n"
-        "- Appropriate for {difficulty} difficulty\n"
-        "- Focus on practical coding and problem-solving\n"
-        "- Include a brief problem statement with example input/output if applicable\n"
-        "- Solvable within 15-20 minutes\n\n"
-        "Return ONLY the question text. No answer, hints, or preamble."
-    ),
+    "coding": _CODING_PROMPT_GENERIC,
     "behavioral": (
         "You are an experienced hiring manager conducting a {difficulty} level "
         "behavioral interview.\nTopic: {topic}\n\n"
@@ -277,32 +302,58 @@ async def generate_interview_question(
     difficulty: str,
     topic: str,
     previous_questions: list[str] | None = None,
+    programming_language: str | None = None,
 ) -> str:
-    """Generate one interview question, avoiding *previous_questions*."""
+    """Generate one interview question, avoiding *previous_questions*.
 
-    template = INTERVIEW_PROMPTS.get(interview_type)
-    if template is None:
-        raise ValueError(
-            f"Unknown interview type '{interview_type}'. "
-            f"Choose from: {', '.join(INTERVIEW_PROMPTS)}"
+    When *programming_language* is provided for coding interviews, questions
+    are tailored to that language's syntax, stdlib, and idioms.
+    """
+
+    # Use language-specific template for coding interviews when a language is specified
+    if interview_type == "coding" and programming_language:
+        template = _CODING_PROMPT_LANG
+        prompt = template.format(
+            difficulty=difficulty,
+            topic=topic,
+            language=programming_language,
+            previous_context=_build_previous_context(previous_questions),
+        )
+    else:
+        template = INTERVIEW_PROMPTS.get(interview_type)
+        if template is None:
+            raise ValueError(
+                f"Unknown interview type '{interview_type}'. "
+                f"Choose from: {', '.join(INTERVIEW_PROMPTS)}"
+            )
+        prompt = template.format(
+            difficulty=difficulty,
+            topic=topic,
+            previous_context=_build_previous_context(previous_questions),
         )
 
-    prompt = template.format(
-        difficulty=difficulty,
-        topic=topic,
-        previous_context=_build_previous_context(previous_questions),
-    )
+    # Build a language-aware system prompt for coding interviews
+    system_prompt = SYSTEM_PROMPT
+    if interview_type == "coding" and programming_language:
+        system_prompt = (
+            f"You are a professional technical interviewer specializing in {programming_language}. "
+            f"All questions must be specific to {programming_language} — its syntax, standard library, "
+            "built-in features, and idiomatic patterns. "
+            "Never suggest solving in a different language. "
+            "Always respond with a single, well-crafted interview question. "
+            "Never include answers, hints, or extra commentary."
+        )
 
     model_name = settings.GROQ_MODEL if settings.AI_PROVIDER == "groq" else settings.OLLAMA_MODEL
     logger.info(
-        "Generating %s question | difficulty=%s | topic=%s | model=%s | prev=%d",
-        interview_type, difficulty, topic, model_name,
-        len(previous_questions or []),
+        "Generating %s question | difficulty=%s | topic=%s | lang=%s | model=%s | prev=%d",
+        interview_type, difficulty, topic, programming_language or "any",
+        model_name, len(previous_questions or []),
     )
 
     text = await _chat(
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt},
         ],
         temperature=0.7,
@@ -319,12 +370,27 @@ async def evaluate_answer(
     user_answer: str,
     interview_type: str,
     difficulty: str,
+    programming_language: str | None = None,
 ) -> dict:
-    """Evaluate a candidate's answer and return structured feedback as a dict."""
+    """Evaluate a candidate's answer and return structured feedback as a dict.
+
+    When *programming_language* is provided, evaluation criteria include
+    language-specific correctness, idiomatic usage, and best practices.
+    """
+
+    lang_context = ""
+    if programming_language and interview_type == "coding":
+        lang_context = (
+            f"\nThe candidate is expected to answer in {programming_language}.\n"
+            f"Evaluate their use of {programming_language}-specific syntax, "
+            f"standard library, idioms, and best practices.\n"
+            f"If their code is not in {programming_language}, flag this as an issue.\n"
+        )
 
     prompt = (
         f"You are evaluating a candidate's answer in a {difficulty} level "
-        f"{interview_type} interview.\n\n"
+        f"{interview_type} interview.\n"
+        f"{lang_context}\n"
         f"Question:\n{question}\n\n"
         f"Candidate's Answer:\n{user_answer}\n\n"
         "Respond with ONLY valid JSON in this format:\n"
@@ -367,12 +433,27 @@ async def generate_followup_question(
     interview_type: str,
     difficulty: str,
     topic: str,
+    programming_language: str | None = None,
 ) -> str:
-    """Generate a follow-up question based on the candidate's last answer."""
+    """Generate a follow-up question based on the candidate's last answer.
+
+    When *programming_language* is provided, the follow-up stays within
+    the context of that specific language.
+    """
+
+    lang_context = ""
+    if programming_language and interview_type == "coding":
+        lang_context = (
+            f"\nThis interview is specific to {programming_language}. "
+            f"The follow-up question must stay within {programming_language} — "
+            f"test deeper knowledge of its syntax, standard library, "
+            f"language-specific features, or idiomatic patterns.\n"
+        )
 
     prompt = (
         f"You are conducting a {difficulty} level {interview_type} interview "
-        f"on {topic}.\n\n"
+        f"on {topic}.\n"
+        f"{lang_context}\n"
         f"Previous Question:\n{original_question}\n\n"
         f"Candidate's Answer:\n{candidate_answer}\n\n"
         "Based on the candidate's answer, generate exactly ONE follow-up "
@@ -399,6 +480,7 @@ async def generate_session_feedback(
     difficulty: str,
     topic: str,
     qa_pairs: list[dict[str, str]],
+    programming_language: str | None = None,
 ) -> dict:
     """Generate holistic feedback for an entire interview session.
 
@@ -406,6 +488,8 @@ async def generate_session_feedback(
     ----------
     qa_pairs : list of dicts
         Each dict has keys ``question``, ``answer``, and optionally ``score``.
+    programming_language : str, optional
+        When provided, feedback includes language-specific assessment.
 
     Returns
     -------
@@ -419,9 +503,19 @@ async def generate_session_feedback(
         for i, pair in enumerate(qa_pairs, 1)
     )
 
+    lang_context = ""
+    if programming_language and interview_type == "coding":
+        lang_context = (
+            f"\nThis was a {programming_language}-specific coding interview. "
+            f"Include assessment of the candidate's proficiency with "
+            f"{programming_language} syntax, standard library, idiomatic patterns, "
+            f"and language-specific best practices in your feedback.\n"
+        )
+
     prompt = (
         f"You are reviewing a complete {difficulty} level {interview_type} "
-        f"interview session on {topic}.\n\n"
+        f"interview session on {topic}.\n"
+        f"{lang_context}\n"
         f"Questions & Answers:\n{qa_block}\n\n"
         "Provide a holistic assessment. Respond with ONLY valid JSON:\n"
         "{\n"
