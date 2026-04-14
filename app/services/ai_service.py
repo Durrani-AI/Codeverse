@@ -87,44 +87,21 @@ def with_retry(
 
 # --- Prompt templates (one per interview type) ---
 
-# Generic coding prompt (no specific language)
-_CODING_PROMPT_GENERIC = (
-    "You are a senior software engineer conducting a {difficulty} level "
-    "technical coding interview.\nTopic: {topic}\n\n"
-    "{previous_context}"
-    "Generate exactly ONE clear and concise coding interview question.\n"
-    "Requirements:\n"
-    "- Appropriate for {difficulty} difficulty\n"
-    "- Focus on practical coding and problem-solving\n"
-    "- Include a brief problem statement with example input/output if applicable\n"
-    "- Solvable within 15-20 minutes\n\n"
-    "Return ONLY the question text. No answer, hints, or preamble."
-)
-
-# Language-specific coding prompt
-_CODING_PROMPT_LANG = (
-    "You are a senior software engineer conducting a {difficulty} level "
-    "technical coding interview specifically for {language}.\n"
-    "Topic: {topic}\n\n"
-    "{previous_context}"
-    "Generate exactly ONE clear and concise coding interview question "
-    "that is SPECIFIC to {language}.\n"
-    "Requirements:\n"
-    "- The question MUST be tailored to {language} — use its native syntax, "
-    "standard library, built-in data structures, and language-specific idioms\n"
-    "- Expect the candidate to write their solution in {language} only\n"
-    "- Include example input/output using {language} conventions "
-    "(e.g. {language}-style variable naming, type annotations if applicable)\n"
-    "- Test knowledge of {language}-specific features such as: "
-    "language-specific built-in functions, standard library modules, "
-    "memory model, concurrency primitives, or unique language constructs\n"
-    "- Appropriate for {difficulty} difficulty\n"
-    "- Solvable within 15-20 minutes\n\n"
-    "Return ONLY the question text. No answer, hints, or preamble."
-)
-
 INTERVIEW_PROMPTS: dict[str, str] = {
-    "coding": _CODING_PROMPT_GENERIC,
+    "coding": (
+        "You are a senior software engineer conducting a {difficulty} level "
+        "technical coding interview.\nTopic: {topic}\n"
+        "{language_context}"
+        "\n{previous_context}"
+        "Generate exactly ONE clear and concise coding interview question.\n"
+        "Requirements:\n"
+        "- Appropriate for {difficulty} difficulty\n"
+        "- Focus on practical coding and problem-solving\n"
+        "{language_requirements}"
+        "- Include a brief problem statement with example input/output if applicable\n"
+        "- Solvable within 15-20 minutes\n\n"
+        "Return ONLY the question text. No answer, hints, or preamble."
+    ),
     "behavioral": (
         "You are an experienced hiring manager conducting a {difficulty} level "
         "behavioral interview.\nTopic: {topic}\n\n"
@@ -304,56 +281,44 @@ async def generate_interview_question(
     previous_questions: list[str] | None = None,
     programming_language: str | None = None,
 ) -> str:
-    """Generate one interview question, avoiding *previous_questions*.
+    """Generate one interview question, avoiding *previous_questions*."""
 
-    When *programming_language* is provided for coding interviews, questions
-    are tailored to that language's syntax, stdlib, and idioms.
-    """
-
-    # Use language-specific template for coding interviews when a language is specified
-    if interview_type == "coding" and programming_language:
-        template = _CODING_PROMPT_LANG
-        prompt = template.format(
-            difficulty=difficulty,
-            topic=topic,
-            language=programming_language,
-            previous_context=_build_previous_context(previous_questions),
-        )
-    else:
-        template = INTERVIEW_PROMPTS.get(interview_type)
-        if template is None:
-            raise ValueError(
-                f"Unknown interview type '{interview_type}'. "
-                f"Choose from: {', '.join(INTERVIEW_PROMPTS)}"
-            )
-        prompt = template.format(
-            difficulty=difficulty,
-            topic=topic,
-            previous_context=_build_previous_context(previous_questions),
+    template = INTERVIEW_PROMPTS.get(interview_type)
+    if template is None:
+        raise ValueError(
+            f"Unknown interview type '{interview_type}'. "
+            f"Choose from: {', '.join(INTERVIEW_PROMPTS)}"
         )
 
-    # Build a language-aware system prompt for coding interviews
-    system_prompt = SYSTEM_PROMPT
-    if interview_type == "coding" and programming_language:
-        system_prompt = (
-            f"You are a professional technical interviewer specializing in {programming_language}. "
-            f"All questions must be specific to {programming_language} — its syntax, standard library, "
-            "built-in features, and idiomatic patterns. "
-            "Never suggest solving in a different language. "
-            "Always respond with a single, well-crafted interview question. "
-            "Never include answers, hints, or extra commentary."
+    # Build language-specific context for coding questions
+    language_context = ""
+    language_requirements = ""
+    if programming_language and interview_type == "coding":
+        language_context = f"Programming Language: {programming_language}\n"
+        language_requirements = (
+            f"- The question MUST be specific to {programming_language}\n"
+            f"- Use {programming_language} syntax, idioms, and standard library in examples\n"
+            f"- Test knowledge of {programming_language}-specific features and best practices\n"
         )
+
+    prompt = template.format(
+        difficulty=difficulty,
+        topic=topic,
+        previous_context=_build_previous_context(previous_questions),
+        language_context=language_context,
+        language_requirements=language_requirements,
+    )
 
     model_name = settings.GROQ_MODEL if settings.AI_PROVIDER == "groq" else settings.OLLAMA_MODEL
     logger.info(
         "Generating %s question | difficulty=%s | topic=%s | lang=%s | model=%s | prev=%d",
-        interview_type, difficulty, topic, programming_language or "any",
-        model_name, len(previous_questions or []),
+        interview_type, difficulty, topic, programming_language or "any", model_name,
+        len(previous_questions or []),
     )
 
     text = await _chat(
         messages=[
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
         ],
         temperature=0.7,
