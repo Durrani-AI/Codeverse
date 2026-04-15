@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🤖 AI Technical Interview Coach
+# 🤖 Codeverse
 
 **Practice coding, behavioral, and system design interviews with real-time AI-powered feedback.**
 
@@ -41,7 +41,7 @@
 
 **The Problem:** Preparing for technical interviews is stressful. Mock interviews are expensive, scheduling with peers is hard, and generic question banks don't provide personalised feedback.
 
-**The Solution:** AI Interview Coach is a full-stack platform that simulates realistic technical interviews — coding, behavioral, and system design — powered by a local LLM (Ollama) or cloud LLM (Groq). Get instant, context-aware feedback on your answers, track your progress over time, and practice whenever you want.
+**The Solution:** Codeverse is a full-stack platform that simulates realistic technical interviews — coding, behavioral, and system design — powered by a local LLM (Ollama) or cloud LLM (Groq). Get instant, context-aware feedback on your answers, track your progress over time, and practice whenever you want.
 
 ---
 
@@ -149,8 +149,8 @@ ollama pull llama3.2:1b
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Durrani-AI/AI-Tech-Interviewer.git
-cd AI-Tech-Interviewer
+git clone https://github.com/Durrani-AI/Codeverse.git
+cd Codeverse
 ```
 
 ### 2. Backend setup
@@ -195,7 +195,7 @@ cp .env.example .env
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `APP_NAME` | AI Technical Interview Platform | Application display name |
+| `APP_NAME` | Codeverse | Application display name |
 | `DEBUG` | True | Enable debug logging |
 | `SECRET_KEY` | (change me) | JWT signing secret — **change in production** |
 | `ALGORITHM` | HS256 | JWT algorithm |
@@ -366,7 +366,7 @@ Authorization: Bearer <token>
 ## 🗂️ Project Structure
 
 ```
-AI-Tech-Interviewer/
+Codeverse/
 │
 ├── 📄 main.py                    # FastAPI entry point, middleware, error handlers
 ├── 📄 requirements.txt           # Python dependencies
@@ -475,7 +475,7 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 ```
 MIT License
 
-Copyright (c) 2025 AI Interview Coach
+Copyright (c) 2025 Codeverse
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

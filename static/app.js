@@ -1,4 +1,4 @@
-/* AI Technical Interviewer – Frontend Application */
+/* Codeverse - Frontend Application */
 
 const API = "/api/v1";
 

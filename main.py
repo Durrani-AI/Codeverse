@@ -1,5 +1,5 @@
 """
-AI Technical Interview Platform - FastAPI entry point.
+Codeverse - FastAPI entry point.
 
 Run (development):
     uvicorn main:app --reload
@@ -130,7 +130,7 @@ async def lifespan(app: FastAPI):
 # --- FastAPI application ---
 
 app = FastAPI(
-    title="AI Technical Interview Platform",
+    title="Codeverse",
     description=(
         "A production-ready backend for **AI-powered technical interviews**.\n\n"
         "### Features\n"
@@ -157,8 +157,8 @@ app = FastAPI(
         "url": "https://opensource.org/licenses/MIT",
     },
     contact={
-        "name": "AI Interview Platform",
-        "url": "https://github.com/Durrani-AI/AI-Tech-Interviewer",
+        "name": "Codeverse",
+        "url": "https://github.com/Durrani-AI/Codeverse",
     },
     docs_url="/docs",
     redoc_url="/redoc",

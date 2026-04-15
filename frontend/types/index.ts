@@ -1,4 +1,4 @@
-/*    TypeScript interfaces for the AI Interview Platform */
+/*    TypeScript interfaces for Codeverse */
 
 // Enums
 

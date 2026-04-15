@@ -1,4 +1,4 @@
-"""
+﻿"""
 Application configuration via pydantic-settings.
 All values can be overridden through environment variables or a .env file.
 """
@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     """
 
     # App
-    APP_NAME: str = "AI Technical Interview Platform"
+    APP_NAME: str = "Codeverse"
     DEBUG: bool = True
     HOST: str = "0.0.0.0"
     PORT: int = 8000

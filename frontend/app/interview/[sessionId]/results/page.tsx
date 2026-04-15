@@ -213,7 +213,7 @@ export default function InterviewResultsPage() {
 
   const handleShare = useCallback(async () => {
     const shareData = {
-      title: "AI Interview Results",
+      title: "Codeverse Interview Results",
       text: state.feedback
         ? `I scored ${state.feedback.overall_score?.toFixed(1) ?? "-"}/10 on my ${state.session ? formatInterviewType(state.session.interview_type) : ""} interview!`
         : "Check out my interview results!",
