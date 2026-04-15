@@ -44,6 +44,22 @@ interface SubmissionState {
   isComplete: boolean;
 }
 
+function mapProgrammingLanguageToEditorLanguage(
+  language: string | null | undefined,
+): SupportedLanguage {
+  const v = (language ?? "").trim().toLowerCase();
+
+  if (v === "python") return "python";
+  if (v === "javascript" || v === "js") return "javascript";
+  if (v === "typescript" || v === "ts") return "typescript";
+  if (v === "java") return "java";
+  if (v === "c#" || v === "csharp") return "csharp";
+  if (v === "c++" || v === "cpp") return "cpp";
+  if (v === "go" || v === "golang") return "go";
+
+  return "python";
+}
+
 // Elapsed-time hook
 
 function useElapsedTime(startedAt: string | null, active: boolean): string {
@@ -140,6 +156,10 @@ export default function InterviewSessionPage() {
         loading: false,
         error: null,
       });
+
+      if (session.interview_type === "coding" && session.programming_language) {
+        setLanguage(mapProgrammingLanguageToEditorLanguage(session.programming_language));
+      }
     }
 
     load();
@@ -271,6 +291,9 @@ export default function InterviewSessionPage() {
               {session.difficulty_level.charAt(0).toUpperCase() + session.difficulty_level.slice(1)}
             </Badge>
           )}
+          {session?.interview_type === "coding" && session.programming_language && (
+            <Badge variant="default">{session.programming_language}</Badge>
+          )}
         </div>
 
         {/* Centre - question counter */}
@@ -336,6 +359,7 @@ export default function InterviewSessionPage() {
               onChange={setCodeText}
               language={language}
               onLanguageChange={setLanguage}
+              lockLanguage={Boolean(state.session?.programming_language)}
               disabled={submission.submitting}
               placeholder="// Write your solution here..."
               draftKey={`interview-${sessionId}-code`}

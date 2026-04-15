@@ -34,7 +34,14 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
 
 // Types
 
-export type SupportedLanguage = "python" | "javascript" | "java";
+export type SupportedLanguage =
+  | "python"
+  | "javascript"
+  | "typescript"
+  | "java"
+  | "csharp"
+  | "cpp"
+  | "go";
 
 export interface CodeEditorProps {
   /** Current code value (controlled). */
@@ -45,6 +52,8 @@ export interface CodeEditorProps {
   language?: SupportedLanguage;
   /** Callback when the user changes the language picker. */
   onLanguageChange?: (lang: SupportedLanguage) => void;
+  /** Lock language picker to the provided language. */
+  lockLanguage?: boolean;
   /** Callback when the user clicks "Submit". */
   onSubmit?: () => void;
   /** Show loading state on the submit button. */
@@ -68,7 +77,11 @@ export interface CodeEditorProps {
 const LANGUAGES: { value: SupportedLanguage; label: string }[] = [
   { value: "python", label: "Python" },
   { value: "javascript", label: "JavaScript" },
+  { value: "typescript", label: "TypeScript" },
   { value: "java", label: "Java" },
+  { value: "csharp", label: "C#" },
+  { value: "cpp", label: "C++" },
+  { value: "go", label: "Go" },
 ];
 
 // Helpers
@@ -189,6 +202,7 @@ export function CodeEditor({
   onLanguageChange,
   onSubmit,
   isSubmitting = false,
+  lockLanguage = false,
   disabled = false,
   placeholder = "Write your code here...",
   draftKey = "code-draft",
@@ -249,11 +263,11 @@ export function CodeEditor({
             onChange={(e) =>
               onLanguageChange?.(e.target.value as SupportedLanguage)
             }
-            disabled={disabled}
+            disabled={disabled || lockLanguage}
             className={cn(
               "rounded-md border border-surface-border bg-surface px-2 py-1",
               "text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-brand-500",
-              disabled && "opacity-50 cursor-not-allowed",
+              (disabled || lockLanguage) && "opacity-50 cursor-not-allowed",
             )}
             aria-label="Select programming language"
           >

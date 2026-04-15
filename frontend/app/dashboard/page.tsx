@@ -51,6 +51,16 @@ const DIFFICULTY_LEVELS: { value: DifficultyLevel; label: string; color: string 
   { value: "hard", label: "Hard", color: "text-danger" },
 ];
 
+const PROGRAMMING_LANGUAGES = [
+  "Python",
+  "Java",
+  "C#",
+  "JavaScript",
+  "TypeScript",
+  "C++",
+  "Go",
+] as const;
+
 // Skeleton loader
 
 function DashboardSkeleton() {
@@ -102,6 +112,7 @@ export default function DashboardPage() {
   const [selectedType, setSelectedType] = useState<InterviewType>("coding");
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel>("medium");
   const [topic, setTopic] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("Python");
   const [starting, setStarting] = useState(false);
 
   // Fetch data on mount
@@ -133,18 +144,28 @@ export default function DashboardPage() {
   // Start a new interview
 
   const handleStart = useCallback(async () => {
+    if (selectedType === "coding" && !selectedLanguage.trim()) {
+      return;
+    }
+
     setStarting(true);
     const res = await startInterview({
       interview_type: selectedType,
       difficulty_level: selectedDifficulty,
-      topic: topic.trim() || formatInterviewType(selectedType),
+      topic:
+        topic.trim() ||
+        (selectedType === "coding"
+          ? `${selectedLanguage} interview practice`
+          : formatInterviewType(selectedType)),
+      programming_language:
+        selectedType === "coding" ? selectedLanguage : undefined,
     });
     setStarting(false);
 
     if (res.ok) {
       router.push(`/interview/${res.data.session_id}`);
     }
-  }, [selectedType, selectedDifficulty, topic, router]);
+  }, [selectedType, selectedDifficulty, topic, selectedLanguage, router]);
 
   // Navigation helpers
 
@@ -296,6 +317,32 @@ export default function DashboardPage() {
 
           {/* Topic + submit */}
           <div className="space-y-4 flex flex-col">
+            {selectedType === "coding" && (
+              <div className="space-y-2">
+                <label
+                  htmlFor="language-select"
+                  className="text-xs font-medium uppercase tracking-wider text-foreground-muted"
+                >
+                  Programming Language
+                </label>
+                <select
+                  id="language-select"
+                  value={selectedLanguage}
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  className="input"
+                >
+                  {PROGRAMMING_LANGUAGES.map((lang) => (
+                    <option key={lang} value={lang}>
+                      {lang}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-foreground-muted">
+                  Questions will be generated specifically for {selectedLanguage}.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
               <label htmlFor="topic-input" className="text-xs font-medium uppercase tracking-wider text-foreground-muted">
                 Topic (optional)

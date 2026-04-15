@@ -107,6 +107,12 @@ async def start_interview(
 ):
     """Create a new interview session and generate the first question."""
 
+    if request.interview_type.value == "coding" and not (request.programming_language or "").strip():
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "programming_language is required for coding interviews.",
+        )
+
     # Create the session record
     try:
         session = InterviewSession(
