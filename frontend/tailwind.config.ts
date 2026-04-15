@@ -27,7 +27,7 @@ const config: Config = {
         },
         /* Deep-dark surfaces*/
         surface: {
-          DEFAULT:     "#08080d",  /* page background – near-black */
+          DEFAULT:     "#08080d",  /* page background - near-black */
           alt:         "#0e0e14",  /* slightly lifted bg (navbar, sidebar) */
           card:        "#111118",  /* card / panel bg */
           "card-hover":"#18181f",
@@ -49,7 +49,7 @@ const config: Config = {
         },
         /* Text*/
         foreground: {
-          DEFAULT: "#e8e8ed",  /* primary text – crisp white-ish */
+          DEFAULT: "#e8e8ed",  /* primary text - crisp white-ish */
           muted:   "#71717a",  /* subdued descriptive text */
         },
       },

@@ -1,6 +1,6 @@
 "use client";
 
-/* Client-side providers wrapper – renders AuthProvider + Navbar around children */
+/* Client-side providers wrapper - renders AuthProvider + Navbar around children */
 
 import { type ReactNode } from "react";
 import { AuthProvider } from "@/lib/auth-context";

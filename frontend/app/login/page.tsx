@@ -110,7 +110,7 @@ export default function LoginPage() {
             className="w-full"
             isLoading={loading}
           >
-            {loading ? "Signing in…" : "Sign In"}
+            {loading ? "Signing in..." : "Sign In"}
           </Button>
         </form>
 

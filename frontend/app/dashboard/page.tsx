@@ -1,4 +1,4 @@
-﻿/*    Dashboard / Home – authenticated landing page
+/*    Dashboard / Home - authenticated landing page
    
    - Welcome message with user's name
    - "Start New Interview" panel with type + difficulty selectors
@@ -211,7 +211,7 @@ export default function DashboardPage() {
           </div>
           <div className="stat-card">
             <p className={cn("stat-number", analytics.average_score > 0 ? scoreColor(analytics.average_score) : "")}>
-              {analytics.average_score > 0 ? analytics.average_score.toFixed(1) : "—"}
+              {analytics.average_score > 0 ? analytics.average_score.toFixed(1) : "-"}
             </p>
             <p className="stat-label">Average Score</p>
           </div>
@@ -235,8 +235,8 @@ export default function DashboardPage() {
                   : analytics.improvement_trend === "declining"
                     ? "↓ Declining"
                     : analytics.improvement_trend === "stable"
-                      ? "→ Stable"
-                      : "—"}
+                      ? "-> Stable"
+                      : "-"}
               </Badge>
             </p>
             <p className="stat-label">Trend</p>
@@ -315,11 +315,11 @@ export default function DashboardPage() {
               size="lg"
               fullWidth
               isLoading={starting}
-              loadingText="Starting…"
+              loadingText="Starting..."
               onClick={handleStart}
               className="mt-auto"
             >
-              Start Interview →
+              Start Interview {"->"}
             </Button>
           </div>
         </div>
@@ -331,7 +331,7 @@ export default function DashboardPage() {
           <h2 className="text-lg font-semibold text-foreground tracking-tight">Recent Interviews</h2>
           {sessions.length > 6 && (
             <Button variant="ghost" size="sm" onClick={() => router.push("/sessions")}>
-              View all →
+              View all {"->"}
             </Button>
           )}
         </div>

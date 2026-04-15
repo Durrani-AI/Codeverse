@@ -1,4 +1,4 @@
-﻿/*    Badge – status / label indicator */
+/*    Badge - status / label indicator */
 
 import { cn } from "@/lib/utils";
 

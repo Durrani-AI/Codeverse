@@ -1,12 +1,12 @@
 """
 Interview endpoints.
 
-POST /start                       – create session + first question
-GET  /{session_id}                – fetch session with all questions & responses
-POST /{session_id}/answer         – submit an answer -> feedback + next question
-POST /{session_id}/feedback       – holistic session-level feedback
-GET  /                            – list sessions for the current user
-DELETE /{session_id}              – cancel / delete an in-progress session
+POST /start                       - create session + first question
+GET  /{session_id}                - fetch session with all questions & responses
+POST /{session_id}/answer         - submit an answer -> feedback + next question
+POST /{session_id}/feedback       - holistic session-level feedback
+GET  /                            - list sessions for the current user
+DELETE /{session_id}              - cancel / delete an in-progress session
 """
 
 import logging
@@ -262,7 +262,7 @@ async def submit_answer(
             await db.refresh(next_q)
             next_question_out = QuestionOut.model_validate(next_q)
         except Exception as exc:
-            logger.warning("Follow-up question generation failed: %s – completing session", exc)
+            logger.warning("Follow-up question generation failed: %s - completing session", exc)
             is_complete = True
 
     if is_complete:
@@ -303,7 +303,7 @@ async def session_feedback(
 ):
     """Generate a comprehensive debrief covering all Q&A in a session.
 
-    The session does NOT need to be marked complete – partial feedback is fine.
+    The session does NOT need to be marked complete - partial feedback is fine.
     """
 
     session = await _get_session_or_404(

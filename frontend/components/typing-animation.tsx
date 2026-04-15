@@ -31,7 +31,7 @@ export default function TypingAnimation() {
       if (text.length < currentPhrase.length) {
         setText(currentPhrase.slice(0, text.length + 1));
       } else {
-        // Finished typing — pause before deleting
+        // Finished typing - pause before deleting
         setIsPaused(true);
         setTimeout(() => {
           setIsPaused(false);
@@ -43,7 +43,7 @@ export default function TypingAnimation() {
       if (text.length > 0) {
         setText(currentPhrase.slice(0, text.length - 1));
       } else {
-        // Finished deleting — move to next phrase
+        // Finished deleting - move to next phrase
         setIsDeleting(false);
         setPhraseIndex((prev) => (prev + 1) % phrases.length);
       }

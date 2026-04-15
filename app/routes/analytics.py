@@ -1,5 +1,5 @@
 """
-Analytics endpoints – overview stats, performance breakdowns, and trends.
+Analytics endpoints - overview stats, performance breakdowns, and trends.
 """
 
 import logging

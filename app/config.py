@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
 
-    # CORS – stored as a plain string so pydantic-settings never tries JSON-parsing.
+    # CORS - stored as a plain string so pydantic-settings never tries JSON-parsing.
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:3001,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:5173"
 
     def get_cors_origins(self) -> List[str]:
@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    # AI Provider – "ollama" for local development, "groq" for cloud deployment
+    # AI Provider - "ollama" for local development, "groq" for cloud deployment
     AI_PROVIDER: str = "ollama"
 
     # Ollama (local)

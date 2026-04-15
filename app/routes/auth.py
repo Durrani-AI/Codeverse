@@ -1,5 +1,5 @@
 """
-Authentication endpoints – register, login, profile, and password management.
+Authentication endpoints - register, login, profile, and password management.
 
 Uses passlib (bcrypt) for password hashing and python-jose for JWT tokens.
 Exposes reusable ``get_current_user`` / ``get_current_active_user`` dependencies
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# OAuth2 scheme – points at the login endpoint so Swagger "Authorize" works
+# OAuth2 scheme - points at the login endpoint so Swagger "Authorize" works
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 

@@ -2,10 +2,10 @@
 LLM integration layer supporting Ollama (local) and Groq (cloud).
 
 Provides four public functions:
-- generate_interview_question()  – craft a question (avoids repeats)
-- evaluate_answer()              – structured feedback dict
-- generate_followup_question()   – contextual follow-up based on the response
-- generate_session_feedback()    – holistic session-level analysis
+- generate_interview_question()  - craft a question (avoids repeats)
+- evaluate_answer()              - structured feedback dict
+- generate_followup_question()   - contextual follow-up based on the response
+- generate_session_feedback()    - holistic session-level analysis
 
 All public functions use automatic retry with exponential back-off.
 """
@@ -32,7 +32,7 @@ else:
         import ollama
     except ImportError:
         logger.warning(
-            "ollama package not installed – install it for local inference: pip install ollama"
+            "ollama package not installed - install it for local inference: pip install ollama"
         )
         ollama = None  # type: ignore[assignment]
 
@@ -144,7 +144,7 @@ def _build_previous_context(previous_questions: list[str] | None) -> str:
         f"  {i}. {q}" for i, q in enumerate(previous_questions, 1)
     )
     return (
-        "The following questions have already been asked in this session – "
+        "The following questions have already been asked in this session - "
         "do NOT repeat or rephrase any of them:\n"
         f"{numbered}\n\n"
     )
@@ -410,7 +410,7 @@ async def generate_followup_question(
     if programming_language and interview_type == "coding":
         lang_context = (
             f"\nThis interview is specific to {programming_language}. "
-            f"The follow-up question must stay within {programming_language} — "
+            f"The follow-up question must stay within {programming_language} - "
             f"test deeper knowledge of its syntax, standard library, "
             f"language-specific features, or idiomatic patterns.\n"
         )

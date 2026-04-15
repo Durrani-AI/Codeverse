@@ -1,11 +1,13 @@
-   Interview Results – post-interview analysis & review page
-   - Overall score with circular progress indicator
-   - Question list with user responses & AI feedback (strengths + improvements)
-   - Performance breakdown by topic / question type
-   - Comparison with previous interviews (visual bar chart)
-   - "Start Another Interview" button
-   - Share & Print / Export functionality
-   - Fully responsive with TypeScript
+/*
+  Interview Results - post-interview analysis & review page
+  - Overall score with circular progress indicator
+  - Question list with user responses & AI feedback (strengths + improvements)
+  - Performance breakdown by topic / question type
+  - Comparison with previous interviews (visual bar chart)
+  - "Start Another Interview" button
+  - Share & Print / Export functionality
+  - Fully responsive with TypeScript
+*/
 
 "use client";
 
@@ -213,7 +215,7 @@ export default function InterviewResultsPage() {
     const shareData = {
       title: "AI Interview Results",
       text: state.feedback
-        ? `I scored ${state.feedback.overall_score?.toFixed(1) ?? "—"}/10 on my ${state.session ? formatInterviewType(state.session.interview_type) : ""} interview!`
+        ? `I scored ${state.feedback.overall_score?.toFixed(1) ?? "-"}/10 on my ${state.session ? formatInterviewType(state.session.interview_type) : ""} interview!`
         : "Check out my interview results!",
       url: window.location.href,
     };
@@ -279,7 +281,7 @@ export default function InterviewResultsPage() {
       <ProtectedRoute>
         <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8 flex flex-col items-center gap-4 pt-32">
           <Spinner size="lg" />
-          <p className="text-foreground-muted text-sm">Loading results…</p>
+          <p className="text-foreground-muted text-sm">Loading results...</p>
         </main>
       </ProtectedRoute>
     );
@@ -323,7 +325,7 @@ export default function InterviewResultsPage() {
             {formatInterviewType(session.interview_type)} Results
           </h1>
           <p className="text-sm text-foreground-muted mt-1">
-            {formatDate(session.started_at)} · {session.difficulty_level.charAt(0).toUpperCase() + session.difficulty_level.slice(1)}
+            {formatDate(session.started_at)} - {session.difficulty_level.charAt(0).toUpperCase() + session.difficulty_level.slice(1)}
           </p>
         </div>
 
@@ -553,7 +555,7 @@ export default function InterviewResultsPage() {
         )}
       </section>
 
-      {/* Performance breakdown – bar chart */}
+      {/* Performance breakdown - bar chart */}
       {individualScores.length > 0 && (
         <section className="glass p-6 space-y-4">
           <h3 className="text-base font-semibold text-foreground">Score by Question</h3>
@@ -577,7 +579,7 @@ export default function InterviewResultsPage() {
       {/* Action buttons */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4 py-4 print:hidden">
         <Button variant="primary" size="lg" onClick={() => router.push("/dashboard")}>
-          Try Again →
+          Try Again {"->"}
         </Button>
         <Button variant="outline" size="lg" onClick={() => router.push("/dashboard")}>
           Go to Home

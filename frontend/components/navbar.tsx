@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-/*    Navbar – persistent top navigation shown on authenticated pages */
+/*    Navbar - persistent top navigation shown on authenticated pages */
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -22,7 +22,7 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-surface-border/40 bg-surface/80 backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-        {/* Left – brand + nav links */}
+        {/* Left - brand + nav links */}
         <div className="flex items-center gap-6">
           <Link
             href="/dashboard"
@@ -52,7 +52,7 @@ export default function Navbar() {
           </nav>
         </div>
 
-        {/* Right – user info + sign out */}
+        {/* Right - user info + sign out */}
         <div className="flex items-center gap-4">
           {user && (
             <span className="hidden text-sm text-foreground-muted/80 sm:inline">

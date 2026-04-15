@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-/*    ProtectedRoute – wraps pages that require authentication.
+/*    ProtectedRoute - wraps pages that require authentication.
    
    While the auth state is loading it shows a centred spinner.
    If the user is NOT authenticated after loading, it redirects to /login. */
@@ -33,7 +33,7 @@ export default function ProtectedRoute({ children }: Props) {
   }
 
   if (!isAuthenticated) {
-    // Will redirect above — render nothing while that happens
+    // Will redirect above - render nothing while that happens
     return null;
   }
 

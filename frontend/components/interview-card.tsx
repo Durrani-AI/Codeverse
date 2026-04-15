@@ -1,9 +1,9 @@
-﻿/*    InterviewCard – displays a single interview session in a card layout
+/*    InterviewCard - displays a single interview session in a card layout
    
-   Shows : interview_type · difficulty_level · status badge
-           started_at + computed duration · score (if completed)
-   Actions : Resume (in_progress) · View Details (completed)
-   Layout  : responsive – stacks on mobile, horizontal on desktop */
+   Shows : interview_type - difficulty_level - status badge
+           started_at + computed duration - score (if completed)
+   Actions : Resume (in_progress) - View Details (completed)
+   Layout  : responsive - stacks on mobile, horizontal on desktop */
 
 "use client";
 
@@ -90,7 +90,7 @@ export function InterviewCard({
         "hover:shadow-[0_0_20px_rgba(139,92,246,0.05)]",
         className,
       )}
-      aria-label={`${formatInterviewType(interview_type)} interview – ${formatStatus(status)}`}
+      aria-label={`${formatInterviewType(interview_type)} interview - ${formatStatus(status)}`}
     >
       {/* Header row */}
       <div className="flex items-start justify-between gap-3">
@@ -225,7 +225,7 @@ export function InterviewCard({
           </Button>
         )}
 
-        {/* Score chip (completed sessions only – score lives in feedback, */}
+        {/* Score chip (completed sessions only - score lives in feedback, */}
         {/* so we show a placeholder; parent can pass it in via children).  */}
       </div>
     </article>

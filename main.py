@@ -1,5 +1,5 @@
 """
-AI Technical Interview Platform – FastAPI entry point.
+AI Technical Interview Platform - FastAPI entry point.
 
 Run (development):
     uvicorn main:app --reload
@@ -54,13 +54,13 @@ tags_metadata = [
     {
         "name": "Interviews",
         "description": (
-            "Core interview flow – start a session, submit answers with "
+            "Core interview flow - start a session, submit answers with "
             "real-time evaluation, and receive session-level feedback.\n\n"
             "**Typical workflow:**\n"
-            "1. `POST /start` → creates a session and returns the first question\n"
-            "2. `POST /{session_id}/answer` → submit your answer, get feedback + next question\n"
+            "1. `POST /start` -> creates a session and returns the first question\n"
+            "2. `POST /{session_id}/answer` -> submit your answer, get feedback + next question\n"
             "3. Repeat step 2 until `is_complete` is `true`\n"
-            "4. `POST /{session_id}/feedback` → get a holistic session debrief"
+            "4. `POST /{session_id}/feedback` -> get a holistic session debrief"
         ),
     },
     {
@@ -93,7 +93,7 @@ tags_metadata = [
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup: create tables + seed demo user. Shutdown: dispose engine."""
-    logger.info("Starting up …")
+    logger.info("Starting up ...")
     await create_tables()
     logger.info("Database tables ready")
 
@@ -119,10 +119,10 @@ async def lifespan(app: FastAPI):
             await session.commit()
             logger.info("Created default demo user")
 
-    logger.info("Application ready – serving on http://%s:%s", settings.HOST, settings.PORT)
+    logger.info("Application ready - serving on http://%s:%s", settings.HOST, settings.PORT)
     yield
 
-    logger.info("Shutting down …")
+    logger.info("Shutting down ...")
     await close_db()
     logger.info("Cleanup complete")
 
@@ -140,7 +140,7 @@ app = FastAPI(
         "- Session-level holistic analysis and improvement recommendations\n"
         "- Performance analytics and progress tracking\n\n"
         "### Tech Stack\n"
-        "FastAPI · SQLAlchemy (async) · Ollama / Groq LLM · Pydantic v2 · JWT Auth\n\n"
+        "FastAPI - SQLAlchemy (async) - Ollama / Groq LLM - Pydantic v2 - JWT Auth\n\n"
         "### Quick Start\n"
         "```bash\n"
         "# 1. Start Ollama\n"
@@ -199,8 +199,8 @@ async def request_context_middleware(request: Request, call_next):
     """Attach a unique request ID and measure processing time.
 
     Response headers:
-    - X-Request-ID   – unique identifier for log correlation
-    - X-Process-Time – wall-clock seconds spent handling the request
+    - X-Request-ID   - unique identifier for log correlation
+    - X-Process-Time - wall-clock seconds spent handling the request
     """
     request_id = str(uuid.uuid4())
     request.state.request_id = request_id
@@ -213,7 +213,7 @@ async def request_context_middleware(request: Request, call_next):
     response.headers["X-Process-Time"] = f"{elapsed:.4f}"
 
     logger.info(
-        "%s %s → %s (%.3fs) [%s]",
+        "%s %s -> %s (%.3fs) [%s]",
         request.method,
         request.url.path,
         response.status_code,
@@ -290,7 +290,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         loc_parts = [str(p) for p in err.get("loc", [])]
         details.append(
             {
-                "field": " → ".join(loc_parts),
+                "field": " -> ".join(loc_parts),
                 "message": err.get("msg", ""),
                 "type": err.get("type", ""),
             }
@@ -340,7 +340,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
-    """Catch-all for unexpected errors – never leaks internal details in production."""
+    """Catch-all for unexpected errors - never leaks internal details in production."""
     request_id = getattr(request.state, "request_id", "unknown")
     logger.exception(
         "Unhandled exception on %s %s [request_id=%s]",

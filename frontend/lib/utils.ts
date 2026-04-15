@@ -10,7 +10,7 @@ export function cn(...inputs: ClassValue[]): string {
 
 /** Format an ISO-8601 date string to a human-readable form. */
 export function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return "—";
+  if (!dateStr) return "-";
   return new Date(dateStr).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -25,7 +25,7 @@ export function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-/** Format an interview type for display (e.g. "system_design" → "System Design"). */
+/** Format an interview type for display (e.g. "system_design" -> "System Design"). */
 export function formatInterviewType(type: string): string {
   return type
     .split("_")

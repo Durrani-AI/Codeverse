@@ -58,7 +58,7 @@ export default function RegisterPage() {
         setError(errData?.detail ?? "Registration failed. Username or email may already be taken.");
         return;
       }
-      // Registration succeeded → redirect to login
+      // Registration succeeded -> redirect to login
       router.push("/login?registered=1");
     } catch (err: unknown) {
       const msg =
@@ -182,7 +182,7 @@ export default function RegisterPage() {
             className="w-full"
             isLoading={loading}
           >
-            {loading ? "Creating account…" : "Create Account"}
+            {loading ? "Creating account..." : "Create Account"}
           </Button>
         </form>
 

@@ -1,7 +1,7 @@
 "use client";
 
 /*
- * Auth Context – shared authentication state for the whole app.
+ * Auth Context - shared authentication state for the whole app.
  *
  * Provides:
  * - user: current User object (null while loading / logged out)
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
       }
     } catch {
-      // Token was invalid / expired – wipe it
+      // Token was invalid / expired - wipe it
       clearToken();
       setUser(null);
     } finally {
@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchUser();
   }, [fetchUser]);
 
-  // Called after a successful login – stores the token, fetches the profile,
+  // Called after a successful login - stores the token, fetches the profile,
   // then navigates to the dashboard.
   const login = useCallback(
     async (token: string) => {

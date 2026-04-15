@@ -1,5 +1,5 @@
 /*
- * API client – Axios-based typed HTTP client for the FastAPI backend.
+ * API client - Axios-based typed HTTP client for the FastAPI backend.
  *
  * - Axios instance with base URL + JSON defaults
  * - Request interceptor: attaches Bearer token automatically
@@ -70,10 +70,10 @@ const api: AxiosInstance = axios.create({
     "Content-Type": "application/json",
     Accept: "application/json",
   },
-  timeout: 60_000, // 60 s – generous for Render free-tier cold starts + AI responses
+  timeout: 60_000, // 60 s - generous for Render free-tier cold starts + AI responses
 });
 
-// Request interceptor – attach Bearer token
+// Request interceptor - attach Bearer token
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -86,7 +86,7 @@ api.interceptors.request.use(
   (error: AxiosError) => Promise.reject(error),
 );
 
-// Response interceptor – normalise errors & handle 401────
+// Response interceptor - normalise errors & handle 401────
 
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
@@ -94,7 +94,7 @@ api.interceptors.response.use(
     if (error.response) {
       const { status } = error.response;
 
-      // 401 Unauthorized → clear tokens & redirect to login
+      // 401 Unauthorized -> clear tokens & redirect to login
       if (status === 401) {
         clearToken();
         if (typeof window !== "undefined") {
@@ -124,11 +124,11 @@ api.interceptors.response.use(
 
     // Network / timeout error
     if (error.code === "ECONNABORTED") {
-      return Promise.reject(new Error("Request timed out – please try again."));
+      return Promise.reject(new Error("Request timed out - please try again."));
     }
 
     return Promise.reject(
-      new Error("Network error – check your connection and try again."),
+      new Error("Network error - check your connection and try again."),
     );
   },
 );
@@ -180,7 +180,7 @@ export async function getMe() {
   return request<User>("GET", "/auth/me");
 }
 
-/** Log out – simply clears the stored token (stateless JWT). */
+/** Log out - simply clears the stored token (stateless JWT). */
 export function logout(): void {
   clearToken();
 }

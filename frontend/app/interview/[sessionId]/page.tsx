@@ -1,13 +1,15 @@
-   Interview Session – live interview page
-   - Gets sessionId from URL params
-   - Displays current question prominently
-   - Shows CodeEditor for coding / textarea for behavioral & system_design
-   - Live elapsed-time timer
-   - Submit Answer & Skip Question buttons
-   - Question counter (e.g. "Question 2 of 10")
-   - Shows AI feedback inline after each submission
-   - Navigates to results page when session completes
-   - Full loading, error, and empty states
+/*
+  Interview Session - live interview page
+  - Gets sessionId from URL params
+  - Displays current question prominently
+  - Shows CodeEditor for coding / textarea for behavioral & system_design
+  - Live elapsed-time timer
+  - Submit Answer & Skip Question buttons
+  - Question counter (e.g. "Question 2 of 10")
+  - Shows AI feedback inline after each submission
+  - Navigates to results page when session completes
+  - Full loading, error, and empty states
+*/
 
 "use client";
 
@@ -228,7 +230,7 @@ export default function InterviewSessionPage() {
       <ProtectedRoute>
         <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8 flex flex-col items-center gap-4 pt-32">
           <Spinner size="lg" />
-          <p className="text-foreground-muted text-sm">Loading interview session…</p>
+          <p className="text-foreground-muted text-sm">Loading interview session...</p>
         </main>
       </ProtectedRoute>
     );
@@ -259,7 +261,7 @@ export default function InterviewSessionPage() {
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-6 animate-fade-in">
       {/* Top bar */}
       <header className="glass flex flex-wrap items-center justify-between gap-4 py-3 px-5">
-        {/* Left – session info */}
+        {/* Left - session info */}
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-semibold text-foreground">
             {session ? formatInterviewType(session.interview_type) : "Interview"}
@@ -271,13 +273,13 @@ export default function InterviewSessionPage() {
           )}
         </div>
 
-        {/* Centre – question counter */}
+        {/* Centre - question counter */}
         <p className="text-sm text-foreground-muted font-medium">
           Question <span className="text-foreground">{questionIndex}</span> of{" "}
           <span className="text-foreground">{totalQuestions}</span>
         </p>
 
-        {/* Right – timer */}
+        {/* Right - timer */}
         <div className="flex items-center gap-2 text-sm font-mono text-foreground-muted">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -317,7 +319,7 @@ export default function InterviewSessionPage() {
               id="answer-text"
               value={answerText}
               onChange={(e) => setAnswerText(e.target.value)}
-              placeholder={isCoding ? "Explain your approach…" : "Type your answer here…"}
+              placeholder={isCoding ? "Explain your approach..." : "Type your answer here..."}
               rows={isCoding ? 3 : 8}
               disabled={submission.submitting}
               className={cn(
@@ -335,7 +337,7 @@ export default function InterviewSessionPage() {
               language={language}
               onLanguageChange={setLanguage}
               disabled={submission.submitting}
-              placeholder="// Write your solution here…"
+              placeholder="// Write your solution here..."
               draftKey={`interview-${sessionId}-code`}
               minHeight="300px"
             />
@@ -347,7 +349,7 @@ export default function InterviewSessionPage() {
               variant="primary"
               size="lg"
               isLoading={submission.submitting}
-              loadingText="Submitting…"
+              loadingText="Submitting..."
               onClick={handleSubmit}
               disabled={!answerText.trim() && !codeText.trim()}
             >
@@ -360,7 +362,7 @@ export default function InterviewSessionPage() {
               onClick={handleSkip}
               disabled={submission.submitting}
             >
-              Skip Question →
+              Skip Question {"->"}
             </Button>
           </div>
         </section>

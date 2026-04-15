@@ -1,8 +1,8 @@
-﻿/*    Button – reusable, accessible button with variants, sizes & states
+/*    Button - reusable, accessible button with variants, sizes & states
    
-   Variants : primary · secondary · outline · ghost
-   Sizes    : sm · md · lg
-   States   : loading (shows Spinner) · disabled
+   Variants : primary - secondary - outline - ghost
+   Sizes    : sm - md - lg
+   States   : loading (shows Spinner) - disabled
    ARIA     : aria-busy while loading, aria-disabled when disabled */
 
 "use client";
@@ -105,7 +105,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         {...rest}
       >
-        {/* Spinner overlays centered – does NOT push text */}
+        {/* Spinner overlays centered - does NOT push text */}
         {isLoading && (
           <span className="absolute inset-0 flex items-center justify-center">
             <Spinner

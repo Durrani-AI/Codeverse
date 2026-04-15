@@ -26,7 +26,7 @@ def clamp(value: int | float, lo: int | float, hi: int | float) -> int | float:
     return max(lo, min(value, hi))
 
 
-def truncate(text: str, max_length: int = 500, suffix: str = "…") -> str:
+def truncate(text: str, max_length: int = 500, suffix: str = "...") -> str:
     """Truncate *text* to *max_length* characters, appending *suffix* if cut."""
     if len(text) <= max_length:
         return text

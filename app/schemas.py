@@ -207,7 +207,7 @@ InterviewSessionOut = InterviewSessionResponse
 
 
 class InterviewStartResponse(BaseModel):
-    """Returned after starting a session – includes the first question."""
+    """Returned after starting a session - includes the first question."""
 
     session_id: str = Field(..., examples=["a1b2c3d4-e5f6-7890-abcd-ef1234567890"])
     interview_type: InterviewType = Field(..., examples=["coding"])
@@ -334,7 +334,7 @@ FeedbackOut = FeedbackResponse
 # --- Answer-submission response ---
 
 class AnswerSubmitResponse(BaseModel):
-    """Returned after submitting an answer – feedback + what comes next."""
+    """Returned after submitting an answer - feedback + what comes next."""
 
     response: UserResponseOut = Field(
         ..., description="Saved answer with feedback"

@@ -1,4 +1,4 @@
-﻿/*    CodeEditor – rich code editing component for interview answers
+/*    CodeEditor - rich code editing component for interview answers
    
    - Uses Monaco Editor (@monaco-editor/react) when available
    - Falls back to an enhanced <textarea> with line numbers
@@ -27,7 +27,7 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
   loading: () => (
     <div className="flex h-full items-center justify-center text-foreground-muted text-sm">
-      Loading editor…
+      Loading editor...
     </div>
   ),
 });
@@ -190,7 +190,7 @@ export function CodeEditor({
   onSubmit,
   isSubmitting = false,
   disabled = false,
-  placeholder = "Write your code here…",
+  placeholder = "Write your code here...",
   draftKey = "code-draft",
   maxChars = 0,
   className,
@@ -304,7 +304,7 @@ export function CodeEditor({
           {/* Left: hint text */}
           <p className="text-xs text-foreground-muted">
             {overLimit
-              ? "Character limit exceeded – trim your answer."
+              ? "Character limit exceeded - trim your answer."
               : "Review your code before submitting."}
           </p>
 
@@ -318,7 +318,7 @@ export function CodeEditor({
               if (draftKey) clearDraft(draftKey);
             }}
             isLoading={isSubmitting}
-            loadingText="Submitting…"
+            loadingText="Submitting..."
             disabled={disabled || overLimit || !value.trim()}
           >
             Submit Answer
