@@ -5,11 +5,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { cn } from "@/lib/utils";
-
-const navLinks = [
-  { href: "/dashboard", label: "Dashboard" },
-] as const;
 
 export default function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -22,7 +17,7 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-surface-border/40 bg-surface/80 backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-        {/* Left - brand + nav links */}
+        {/* Left - brand (acts as home button) */}
         <div className="flex items-center gap-6">
           <Link
             href="/dashboard"
@@ -33,23 +28,6 @@ export default function Navbar() {
             </span>
             <span className="-ml-1.5 font-bold text-lg tracking-tighter">verse</span>
           </Link>
-
-          <nav className="flex items-center gap-1">
-            {navLinks.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200",
-                  pathname === href
-                    ? "bg-brand-500/10 text-brand-400"
-                    : "text-foreground-muted hover:text-foreground hover:bg-white/[0.04]",
-                )}
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
         </div>
 
         {/* Right - user info + sign out */}

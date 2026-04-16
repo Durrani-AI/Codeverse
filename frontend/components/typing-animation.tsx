@@ -3,16 +3,15 @@
 import { useState, useEffect, useCallback } from "react";
 
 const phrases = [
-  "Crush your next coding interview.",
-  "System design? You got this.",
+  "Crush your next coding challenge.",
   "Practice like it's the real thing.",
   "AI feedback that actually hits.",
   "From nervous to confident.",
-  "Your interview prep, leveled up.",
+  "Your coding prep, leveled up.",
   "No more winging it.",
-  "Built different. Interview different.",
+  "Built different. Code different.",
   "Where devs come to lock in.",
-  "Mock interviews that don't miss.",
+  "Coding practice that doesn't miss.",
 ];
 
 export default function TypingAnimation() {
