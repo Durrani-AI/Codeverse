@@ -14,7 +14,6 @@ import type {
   AnalyticsOverview,
   DifficultyLevel,
   InterviewSession,
-  InterviewType,
 } from "@/types";
 import {
   getAnalyticsOverview,
@@ -22,7 +21,7 @@ import {
   startInterview,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { cn, formatInterviewType, scoreColor } from "@/lib/utils";
+import { cn, scoreColor } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InterviewCard } from "@/components/interview-card";
@@ -37,13 +36,7 @@ interface DashboardState {
   error: string | null;
 }
 
-// Interview type & difficulty options
-
-const INTERVIEW_TYPES: { value: InterviewType; label: string; icon: string }[] = [
-  { value: "coding", label: "Coding", icon: "⌨" },
-  { value: "behavioral", label: "Behavioral", icon: "◎" },
-  { value: "system_design", label: "System Design", icon: "◈" },
-];
+// Difficulty & language options
 
 const DIFFICULTY_LEVELS: { value: DifficultyLevel; label: string; color: string }[] = [
   { value: "easy", label: "Easy", color: "text-success" },
@@ -109,7 +102,6 @@ export default function DashboardPage() {
   });
 
   // New interview form state
-  const [selectedType, setSelectedType] = useState<InterviewType>("coding");
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel>("medium");
   const [topic, setTopic] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("Python");
@@ -144,28 +136,24 @@ export default function DashboardPage() {
   // Start a new interview
 
   const handleStart = useCallback(async () => {
-    if (selectedType === "coding" && !selectedLanguage.trim()) {
+    if (!selectedLanguage.trim()) {
       return;
     }
 
     setStarting(true);
     const res = await startInterview({
-      interview_type: selectedType,
+      interview_type: "coding",
       difficulty_level: selectedDifficulty,
       topic:
-        topic.trim() ||
-        (selectedType === "coding"
-          ? `${selectedLanguage} interview practice`
-          : formatInterviewType(selectedType)),
-      programming_language:
-        selectedType === "coding" ? selectedLanguage : undefined,
+        topic.trim() || `${selectedLanguage} interview practice`,
+      programming_language: selectedLanguage,
     });
     setStarting(false);
 
     if (res.ok) {
       router.push(`/interview/${res.data.session_id}`);
     }
-  }, [selectedType, selectedDifficulty, topic, selectedLanguage, router]);
+  }, [selectedDifficulty, topic, selectedLanguage, router]);
 
   // Navigation helpers
 
@@ -219,7 +207,7 @@ export default function DashboardPage() {
           Welcome back, <span className="text-accent">{user?.username ?? ""}</span>
         </h1>
         <p className="mt-2 text-foreground-muted text-sm">
-          Ready to sharpen your interview skills? Pick a type and start practising.
+          Ready to sharpen your coding skills? Pick a language and start practising.
         </p>
       </header>
 
@@ -267,27 +255,31 @@ export default function DashboardPage() {
 
       {/*  Start New Interview */}
       <section aria-label="Start new interview" className="glass p-6 space-y-6">
-        <h2 className="text-lg font-semibold text-foreground tracking-tight">Start New Interview</h2>
+        <h2 className="text-lg font-semibold text-foreground tracking-tight">Start New Coding Practice</h2>
 
         <div className="grid sm:grid-cols-3 gap-6">
-          {/* Interview type */}
+          {/* Programming language */}
           <div className="space-y-2">
-            <label className="text-xs font-medium uppercase tracking-wider text-foreground-muted">Interview Type</label>
+            <label
+              htmlFor="language-select"
+              className="text-xs font-medium uppercase tracking-wider text-foreground-muted"
+            >
+              Programming Language
+            </label>
             <div className="grid grid-cols-1 gap-2">
-              {INTERVIEW_TYPES.map((t) => (
+              {PROGRAMMING_LANGUAGES.map((lang) => (
                 <button
-                  key={t.value}
+                  key={lang}
                   type="button"
-                  onClick={() => setSelectedType(t.value)}
+                  onClick={() => setSelectedLanguage(lang)}
                   className={cn(
                     "flex items-center gap-3 rounded-sm border px-4 py-3 text-left text-sm transition-all duration-200",
-                    selectedType === t.value
+                    selectedLanguage === lang
                       ? "border-brand-500/50 bg-brand-500/[0.08] text-foreground shadow-[0_0_12px_rgba(139,92,246,0.05)]"
                       : "border-surface-border bg-surface-card/50 text-foreground-muted hover:border-brand-500/30 hover:text-foreground",
                   )}
                 >
-                  <span className="text-brand-400 text-lg">{t.icon}</span>
-                  {t.label}
+                  {lang}
                 </button>
               ))}
             </div>
@@ -315,34 +307,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Topic + submit */}
+          {/* Topic + start */}
           <div className="space-y-4 flex flex-col">
-            {selectedType === "coding" && (
-              <div className="space-y-2">
-                <label
-                  htmlFor="language-select"
-                  className="text-xs font-medium uppercase tracking-wider text-foreground-muted"
-                >
-                  Programming Language
-                </label>
-                <select
-                  id="language-select"
-                  value={selectedLanguage}
-                  onChange={(e) => setSelectedLanguage(e.target.value)}
-                  className="input"
-                >
-                  {PROGRAMMING_LANGUAGES.map((lang) => (
-                    <option key={lang} value={lang}>
-                      {lang}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-foreground-muted">
-                  Questions will be generated specifically for {selectedLanguage}.
-                </p>
-              </div>
-            )}
-
             <div className="space-y-2">
               <label htmlFor="topic-input" className="text-xs font-medium uppercase tracking-wider text-foreground-muted">
                 Topic (optional)
@@ -352,9 +318,12 @@ export default function DashboardPage() {
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder="e.g. Arrays, React hooks"
+                placeholder="e.g. Arrays, Linked Lists, Recursion"
                 className="input"
               />
+              <p className="text-xs text-foreground-muted">
+                Questions will be generated for {selectedLanguage} at {selectedDifficulty} level.
+              </p>
             </div>
 
             <Button
@@ -366,7 +335,7 @@ export default function DashboardPage() {
               onClick={handleStart}
               className="mt-auto"
             >
-              Start Interview {"->"}
+              Start Practice {"->"}
             </Button>
           </div>
         </div>
@@ -403,43 +372,6 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/*  Performance by type (compact) */}
-      {analytics && analytics.by_type.length > 0 && (
-        <section aria-label="Performance by type" className="glass p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-foreground tracking-tight">Performance by Type</h2>
-          <div className="grid sm:grid-cols-3 gap-4">
-            {analytics.by_type.map((entry) => (
-              <div key={entry.interview_type} className="rounded-sm border border-surface-border/60 bg-surface-card/50 p-4 space-y-2">
-                <p className="text-sm font-medium text-foreground">
-                  {formatInterviewType(entry.interview_type)}
-                </p>
-                <div className="flex items-end justify-between">
-                  <p className={cn("text-2xl font-bold", scoreColor(entry.average_score))}>
-                    {entry.average_score.toFixed(1)}
-                  </p>
-                  <p className="text-xs text-foreground-muted">
-                    {entry.total_feedbacks} review{entry.total_feedbacks !== 1 ? "s" : ""}
-                  </p>
-                </div>
-                {/* Progress bar */}
-                <div className="h-1 w-full rounded-full bg-surface-border/50">
-                  <div
-                    className={cn(
-                      "h-1 rounded-full transition-all",
-                      entry.average_score >= 7
-                        ? "bg-success"
-                        : entry.average_score >= 5
-                          ? "bg-warning"
-                          : "bg-danger",
-                    )}
-                    style={{ width: `${(entry.average_score / 10) * 100}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
     </main>
     </ProtectedRoute>
   );

@@ -21,7 +21,7 @@ import type {
   Question,
 } from "@/types";
 import { getSession, submitAnswer } from "@/lib/api";
-import { cn, formatInterviewType } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
@@ -123,9 +123,6 @@ export default function InterviewSessionPage() {
     state.session?.status === "in_progress",
   );
 
-  // Derived
-  const isCoding = state.session?.interview_type === "coding";
-
   // Fetch session on mount
   useEffect(() => {
     async function load() {
@@ -174,8 +171,8 @@ export default function InterviewSessionPage() {
 
     const res = await submitAnswer(sessionId, {
       question_id: question.id,
-      response_text: isCoding ? answerText || "See code below" : answerText,
-      response_code: isCoding ? codeText : undefined,
+      response_text: answerText || "See code below",
+      response_code: codeText || undefined,
     });
 
     if (!res.ok) {
@@ -206,7 +203,7 @@ export default function InterviewSessionPage() {
       setCodeText("");
       setSubmission({ submitting: false, isComplete: false });
     }
-  }, [state.currentQuestion, sessionId, answerText, codeText, isCoding, router]);
+  }, [state.currentQuestion, sessionId, answerText, codeText, router]);
 
   // Skip question (submit empty)
   const handleSkip = useCallback(async () => {
@@ -284,14 +281,14 @@ export default function InterviewSessionPage() {
         {/* Left - session info */}
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-semibold text-foreground">
-            {session ? formatInterviewType(session.interview_type) : "Interview"}
+            Coding Practice
           </h1>
           {session && (
             <Badge variant="warning">
               {session.difficulty_level.charAt(0).toUpperCase() + session.difficulty_level.slice(1)}
             </Badge>
           )}
-          {session?.interview_type === "coding" && session.programming_language && (
+          {session?.programming_language && (
             <Badge variant="default">{session.programming_language}</Badge>
           )}
         </div>
@@ -333,17 +330,30 @@ export default function InterviewSessionPage() {
       {/* Answer area */}
       {currentQuestion && (
         <section className="space-y-4">
-          {/* Text answer (always shown) */}
+          {/* Code editor */}
+          <CodeEditor
+            value={codeText}
+            onChange={setCodeText}
+            language={language}
+            onLanguageChange={setLanguage}
+            lockLanguage={Boolean(state.session?.programming_language)}
+            disabled={submission.submitting}
+            placeholder="// Write your solution here..."
+            draftKey={`interview-${sessionId}-code`}
+            minHeight="300px"
+          />
+
+          {/* Explanation text area */}
           <div className="space-y-2">
             <label htmlFor="answer-text" className="text-xs font-medium uppercase tracking-wider text-foreground-muted">
-              {isCoding ? "Explanation / Approach" : "Your Answer"}
+              Explanation / Approach (optional)
             </label>
             <textarea
               id="answer-text"
               value={answerText}
               onChange={(e) => setAnswerText(e.target.value)}
-              placeholder={isCoding ? "Explain your approach..." : "Type your answer here..."}
-              rows={isCoding ? 3 : 8}
+              placeholder="Explain your approach..."
+              rows={3}
               disabled={submission.submitting}
               className={cn(
                 "input font-sans resize-y",
@@ -351,21 +361,6 @@ export default function InterviewSessionPage() {
               )}
             />
           </div>
-
-          {/* Code editor (coding questions only) */}
-          {isCoding && (
-            <CodeEditor
-              value={codeText}
-              onChange={setCodeText}
-              language={language}
-              onLanguageChange={setLanguage}
-              lockLanguage={Boolean(state.session?.programming_language)}
-              disabled={submission.submitting}
-              placeholder="// Write your solution here..."
-              draftKey={`interview-${sessionId}-code`}
-              minHeight="300px"
-            />
-          )}
 
           {/* Action buttons */}
           <div className="flex flex-wrap items-center gap-3">
