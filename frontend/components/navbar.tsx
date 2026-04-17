@@ -13,6 +13,9 @@ export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ?? "http://127.0.0.1:8000";
+  const avatarUrl = user?.profile_picture ? `${API_BASE}${user.profile_picture}` : null;
+
   // Close dropdown on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -49,9 +52,13 @@ export default function Navbar() {
           {/* Clickable profile icon only */}
           <button
             onClick={() => setDropdownOpen((prev) => !prev)}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500/20 text-brand-400 text-sm font-semibold uppercase transition-all duration-200 hover:bg-brand-500/30 hover:ring-2 hover:ring-brand-500/40"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500/20 text-brand-400 text-sm font-semibold uppercase transition-all duration-200 hover:bg-brand-500/30 hover:ring-2 hover:ring-brand-500/40 overflow-hidden"
           >
-            {user?.username?.charAt(0) || "U"}
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
+            ) : (
+              user?.username?.charAt(0) || "U"
+            )}
           </button>
           {/* Username - static, no hover effect */}
           {user && (

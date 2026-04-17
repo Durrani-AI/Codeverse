@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { login as apiLogin } from "@/lib/api";
 import { Button } from "@/components/ui";
+import { useToast } from "@/components/toast";
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const { toast } = useToast();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -19,7 +21,9 @@ export default function LoginPage() {
     setError(null);
 
     if (!username.trim() || !password.trim()) {
-      setError("Please fill in all fields.");
+      const msg = "Please fill in all fields.";
+      setError(msg);
+      toast("error", msg);
       return;
     }
 
@@ -28,15 +32,18 @@ export default function LoginPage() {
       const res = await apiLogin({ username: username.trim(), password });
       if (!res.ok) {
         const errData = res.data as unknown as { detail?: string };
-        setError(errData?.detail ?? "Invalid username or password.");
+        const msg = errData?.detail ?? "Invalid username or password.";
+        setError(msg);
+        toast("error", msg);
         return;
       }
+      toast("success", "Signed in successfully");
       await login(res.data.access_token);
-      // login() navigates to /dashboard automatically
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : "Login failed. Please try again.";
       setError(msg);
+      toast("error", msg);
     } finally {
       setLoading(false);
     }

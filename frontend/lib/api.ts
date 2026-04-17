@@ -200,6 +200,33 @@ export async function deleteAccount() {
   return request<{ message: string }>("DELETE", "/auth/account");
 }
 
+/** Upload or replace profile picture. Max 5 MB. */
+export async function uploadProfilePicture(file: File): Promise<ApiResponse<User>> {
+  const formData = new FormData();
+  formData.append("file", file);
+  try {
+    const res = await api.put<User>("/auth/profile-picture", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return { ok: true, status: res.status, data: res.data };
+  } catch (err) {
+    const axiosErr = err as import("axios").AxiosError;
+    const status = axiosErr.response?.status ?? 500;
+    const message = err instanceof Error ? err.message : "Upload failed";
+    return { ok: false, status, data: { detail: message } as unknown as User };
+  }
+}
+
+/** Remove profile picture. */
+export async function removeProfilePicture() {
+  return request<User>("DELETE", "/auth/profile-picture");
+}
+
+/** Change the authenticated user's email. */
+export async function changeEmail(body: { email: string }) {
+  return request<User>("PUT", "/auth/email", body);
+}
+
 // Interview endpoints
 
 /** Start a new interview session. */

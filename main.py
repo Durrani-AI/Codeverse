@@ -385,6 +385,11 @@ _static_dir = Path(__file__).resolve().parent / "static"
 if _static_dir.is_dir():
     app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
 
+# Uploads directory (profile pictures etc.)
+_uploads_dir = Path(__file__).resolve().parent / "uploads"
+_uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(_uploads_dir)), name="uploads")
+
 
 # --- System endpoints ---
 

@@ -7,9 +7,12 @@ that other routers can import to protect their endpoints.
 """
 
 import logging
+import os
+import uuid
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -200,3 +203,94 @@ async def delete_account(
     await db.delete(current_user)
     await db.commit()
     return {"message": "Account deleted successfully"}
+
+
+# --- Profile picture upload ---
+
+UPLOAD_DIR = Path("uploads/avatars")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+MAX_AVATAR_SIZE = 5 * 1024 * 1024  # 5 MB
+ALLOWED_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+
+
+@router.put("/profile-picture", response_model=UserResponse)
+async def upload_profile_picture(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload or replace profile picture. Max 5 MB, jpeg/png/gif/webp only."""
+    if file.content_type not in ALLOWED_TYPES:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"File type not allowed. Use: {', '.join(ALLOWED_TYPES)}",
+        )
+
+    contents = await file.read()
+    if len(contents) > MAX_AVATAR_SIZE:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "File too large. Maximum size is 5 MB.",
+        )
+
+    # Delete old avatar if exists
+    if current_user.profile_picture:
+        old_path = Path(current_user.profile_picture.lstrip("/"))
+        if old_path.exists():
+            old_path.unlink(missing_ok=True)
+
+    ext = file.filename.rsplit(".", 1)[-1] if file.filename and "." in file.filename else "jpg"
+    ext = ext.lower()
+    if ext not in ("jpg", "jpeg", "png", "gif", "webp"):
+        ext = "jpg"
+    filename = f"{current_user.id}_{uuid.uuid4().hex[:8]}.{ext}"
+    filepath = UPLOAD_DIR / filename
+
+    with open(filepath, "wb") as f:
+        f.write(contents)
+
+    current_user.profile_picture = f"/uploads/avatars/{filename}"
+    await db.commit()
+    await db.refresh(current_user)
+    logger.info("Profile picture updated for user %s", current_user.username)
+    return UserResponse.model_validate(current_user)
+
+
+@router.delete("/profile-picture", response_model=UserResponse)
+async def remove_profile_picture(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Remove the user's profile picture."""
+    if current_user.profile_picture:
+        old_path = Path(current_user.profile_picture.lstrip("/"))
+        if old_path.exists():
+            old_path.unlink(missing_ok=True)
+        current_user.profile_picture = None
+        await db.commit()
+        await db.refresh(current_user)
+    return UserResponse.model_validate(current_user)
+
+
+# --- Change email ---
+
+@router.put("/email", response_model=UserResponse)
+async def change_email(
+    body: dict,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Change the authenticated user's email."""
+    new_email = body.get("email", "").strip().lower()
+    if not new_email or "@" not in new_email:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid email address")
+
+    existing = await db.execute(select(User).where(User.email == new_email))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status.HTTP_409_CONFLICT, "Email already in use")
+
+    current_user.email = new_email
+    await db.commit()
+    await db.refresh(current_user)
+    logger.info("Email changed for user %s", current_user.username)
+    return UserResponse.model_validate(current_user)

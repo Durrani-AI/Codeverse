@@ -39,9 +39,19 @@ class UserCreate(BaseModel):
         ...,
         min_length=8,
         max_length=128,
-        description="Strong password (8-128 chars)",
+        description="Strong password (8-128 chars, must contain a letter and a number)",
         examples=["S3cur3P@ss!"],
     )
+
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        import re
+        if not re.search(r"[a-zA-Z]", v):
+            raise ValueError("Password must contain at least one letter")
+        if not re.search(r"[0-9]", v):
+            raise ValueError("Password must contain at least one number")
+        return v
 
     @field_validator("username")
     @classmethod
@@ -81,6 +91,7 @@ class UserResponse(BaseModel):
     email: str = Field(..., examples=["alice@example.com"])
     username: str = Field(..., examples=["alice_dev"])
     is_active: bool = Field(..., examples=[True])
+    profile_picture: Optional[str] = Field(None, examples=["/uploads/avatars/abc123.jpg"])
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -105,8 +116,18 @@ class PasswordChange(BaseModel):
         ...,
         min_length=8,
         max_length=128,
-        description="New password (8-128 chars)",
+        description="New password (8-128 chars, must contain a letter and a number)",
     )
+
+    @field_validator("new_password")
+    @classmethod
+    def new_password_strength(cls, v: str) -> str:
+        import re
+        if not re.search(r"[a-zA-Z]", v):
+            raise ValueError("Password must contain at least one letter")
+        if not re.search(r"[0-9]", v):
+            raise ValueError("Password must contain at least one number")
+        return v
 
     model_config = ConfigDict(
         json_schema_extra={

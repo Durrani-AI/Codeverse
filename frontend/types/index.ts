@@ -15,6 +15,7 @@ export interface User {
   email: string;
   username: string;
   is_active: boolean;
+  profile_picture: string | null;
   created_at: string; // ISO-8601
 }
 

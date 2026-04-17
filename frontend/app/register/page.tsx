@@ -5,9 +5,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { register as apiRegister } from "@/lib/api";
 import { Button } from "@/components/ui";
+import { useToast } from "@/components/toast";
+
+function validatePassword(pw: string): string | null {
+  if (pw.length < 8) return "Password must be at least 8 characters.";
+  if (!/[a-zA-Z]/.test(pw)) return "Password must contain at least one letter.";
+  if (!/[0-9]/.test(pw)) return "Password must contain at least one number.";
+  return null;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { toast } = useToast();
 
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -20,29 +29,38 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
 
-    // Client-side validation (matches backend requirements)
     if (!email.trim() || !username.trim() || !password || !confirmPassword) {
-      setError("Please fill in all fields.");
+      const msg = "Please fill in all fields.";
+      setError(msg);
+      toast("error", msg);
       return;
     }
 
     if (username.trim().length < 3) {
-      setError("Username must be at least 3 characters.");
+      const msg = "Username must be at least 3 characters.";
+      setError(msg);
+      toast("error", msg);
       return;
     }
 
     if (!/^[a-zA-Z0-9_-]+$/.test(username.trim())) {
-      setError("Username may only contain letters, digits, _ and -");
+      const msg = "Username may only contain letters, digits, _ and -";
+      setError(msg);
+      toast("error", msg);
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    const pwError = validatePassword(password);
+    if (pwError) {
+      setError(pwError);
+      toast("error", pwError);
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      const msg = "Passwords do not match.";
+      setError(msg);
+      toast("error", msg);
       return;
     }
 
@@ -55,10 +73,12 @@ export default function RegisterPage() {
       });
       if (!res.ok) {
         const errData = res.data as unknown as { detail?: string };
-        setError(errData?.detail ?? "Registration failed. Username or email may already be taken.");
+        const msg = errData?.detail ?? "Registration failed. Username or email may already be taken.";
+        setError(msg);
+        toast("error", msg);
         return;
       }
-      // Registration succeeded -> redirect to login
+      toast("success", "Account created! Redirecting to login...");
       router.push("/login?registered=1");
     } catch (err: unknown) {
       const msg =
@@ -67,9 +87,12 @@ export default function RegisterPage() {
           : "Registration failed. Please try again.";
       if (typeof err === "object" && err !== null && "response" in err) {
         const axErr = err as { response?: { data?: { detail?: string } } };
-        setError(axErr.response?.data?.detail ?? msg);
+        const detail = axErr.response?.data?.detail ?? msg;
+        setError(detail);
+        toast("error", detail);
       } else {
         setError(msg);
+        toast("error", msg);
       }
     } finally {
       setLoading(false);
@@ -154,6 +177,11 @@ export default function RegisterPage() {
               className="input w-full"
               placeholder="--------"
             />
+            <ul className="text-xs text-foreground-muted/70 space-y-0.5 pl-1">
+              <li className={password.length >= 8 ? "text-success" : ""}>• At least 8 characters</li>
+              <li className={/[a-zA-Z]/.test(password) ? "text-success" : ""}>• At least one letter</li>
+              <li className={/[0-9]/.test(password) ? "text-success" : ""}>• At least one number</li>
+            </ul>
           </div>
 
           <div className="space-y-2">
