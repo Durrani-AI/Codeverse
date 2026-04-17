@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import {
   changePassword,
@@ -404,6 +404,31 @@ function SecurityTab() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const showCurrentRef = useRef<NodeJS.Timeout | null>(null);
+  const showNewRef = useRef<NodeJS.Timeout | null>(null);
+  const showConfirmRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleShowCurrent = useCallback(() => {
+    if (showCurrentRef.current) clearTimeout(showCurrentRef.current);
+    setShowCurrent(true);
+    showCurrentRef.current = setTimeout(() => setShowCurrent(false), 2000);
+  }, []);
+
+  const handleShowNew = useCallback(() => {
+    if (showNewRef.current) clearTimeout(showNewRef.current);
+    setShowNew(true);
+    showNewRef.current = setTimeout(() => setShowNew(false), 2000);
+  }, []);
+
+  const handleShowConfirm = useCallback(() => {
+    if (showConfirmRef.current) clearTimeout(showConfirmRef.current);
+    setShowConfirm(true);
+    showConfirmRef.current = setTimeout(() => setShowConfirm(false), 2000);
+  }, []);
+
   function validatePassword(pw: string): string | null {
     if (pw.length < 8) return "Password must be at least 8 characters";
     if (!/[a-zA-Z]/.test(pw)) return "Password must contain at least one letter";
@@ -460,27 +485,45 @@ function SecurityTab() {
             <label className="block text-sm font-medium text-foreground-muted mb-1.5">
               Current Password
             </label>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className="input"
-              required
-            />
+            <div className="relative">
+              <input
+                type={showCurrent ? "text" : "password"}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="input pr-24"
+                required
+              />
+              <button
+                type="button"
+                onClick={handleShowCurrent}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium px-2.5 py-1 rounded-md bg-surface-card border border-surface-border text-foreground-muted hover:text-foreground transition-colors"
+              >
+                {showCurrent ? "Visible" : "Show"}
+              </button>
+            </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-foreground-muted mb-1.5">
               New Password
             </label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="input"
-              required
-              minLength={8}
-            />
+            <div className="relative">
+              <input
+                type={showNew ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="input pr-24"
+                required
+                minLength={8}
+              />
+              <button
+                type="button"
+                onClick={handleShowNew}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium px-2.5 py-1 rounded-md bg-surface-card border border-surface-border text-foreground-muted hover:text-foreground transition-colors"
+              >
+                {showNew ? "Visible" : "Show"}
+              </button>
+            </div>
             <ul className="text-xs text-foreground-muted/70 space-y-0.5 pl-1 mt-2">
               <li className={newPassword.length >= 8 ? "text-success" : ""}>• At least 8 characters</li>
               <li className={/[a-zA-Z]/.test(newPassword) ? "text-success" : ""}>• At least one letter</li>
@@ -492,14 +535,23 @@ function SecurityTab() {
             <label className="block text-sm font-medium text-foreground-muted mb-1.5">
               Confirm New Password
             </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="input"
-              required
-              minLength={8}
-            />
+            <div className="relative">
+              <input
+                type={showConfirm ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="input pr-24"
+                required
+                minLength={8}
+              />
+              <button
+                type="button"
+                onClick={handleShowConfirm}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium px-2.5 py-1 rounded-md bg-surface-card border border-surface-border text-foreground-muted hover:text-foreground transition-colors"
+              >
+                {showConfirm ? "Visible" : "Show"}
+              </button>
+            </div>
           </div>
 
           <button type="submit" disabled={loading} className="btn-primary btn-sm">

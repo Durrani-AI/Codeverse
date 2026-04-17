@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useRef, useCallback, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { register as apiRegister } from "@/lib/api";
@@ -22,8 +22,24 @@ export default function RegisterPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const showPwTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const showConfirmTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const handleShowPassword = useCallback(() => {
+    if (showPwTimerRef.current) clearTimeout(showPwTimerRef.current);
+    setShowPassword(true);
+    showPwTimerRef.current = setTimeout(() => setShowPassword(false), 2000);
+  }, []);
+
+  const handleShowConfirm = useCallback(() => {
+    if (showConfirmTimerRef.current) clearTimeout(showConfirmTimerRef.current);
+    setShowConfirm(true);
+    showConfirmTimerRef.current = setTimeout(() => setShowConfirm(false), 2000);
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -167,16 +183,25 @@ export default function RegisterPage() {
             >
               Password
             </label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="input w-full"
-              placeholder="--------"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="input w-full pr-24"
+                placeholder="--------"
+              />
+              <button
+                type="button"
+                onClick={handleShowPassword}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium px-2.5 py-1 rounded-md bg-surface-card border border-surface-border text-foreground-muted hover:text-foreground transition-colors"
+              >
+                {showPassword ? "Visible" : "Show"}
+              </button>
+            </div>
             <ul className="text-xs text-foreground-muted/70 space-y-0.5 pl-1">
               <li className={password.length >= 8 ? "text-success" : ""}>• At least 8 characters</li>
               <li className={/[a-zA-Z]/.test(password) ? "text-success" : ""}>• At least one letter</li>
@@ -191,16 +216,25 @@ export default function RegisterPage() {
             >
               Confirm Password
             </label>
-            <input
-              id="confirmPassword"
-              type="password"
-              autoComplete="new-password"
-              required
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="input w-full"
-              placeholder="--------"
-            />
+            <div className="relative">
+              <input
+                id="confirmPassword"
+                type={showConfirm ? "text" : "password"}
+                autoComplete="new-password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="input w-full pr-24"
+                placeholder="--------"
+              />
+              <button
+                type="button"
+                onClick={handleShowConfirm}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium px-2.5 py-1 rounded-md bg-surface-card border border-surface-border text-foreground-muted hover:text-foreground transition-colors"
+              >
+                {showConfirm ? "Visible" : "Show"}
+              </button>
+            </div>
           </div>
 
           <Button

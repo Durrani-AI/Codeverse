@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InterviewCard } from "@/components/interview-card";
 import ProtectedRoute from "@/components/protected-route";
+import { useToast } from "@/components/toast";
 
 // Types
 
@@ -93,6 +94,7 @@ function DashboardSkeleton() {
 export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [state, setState] = useState<DashboardState>({
     analytics: null,
@@ -141,19 +143,28 @@ export default function DashboardPage() {
     }
 
     setStarting(true);
-    const res = await startInterview({
-      interview_type: "coding",
-      difficulty_level: selectedDifficulty,
-      topic:
-        topic.trim() || `${selectedLanguage} interview practice`,
-      programming_language: selectedLanguage,
-    });
-    setStarting(false);
+    try {
+      const res = await startInterview({
+        interview_type: "coding",
+        difficulty_level: selectedDifficulty,
+        topic:
+          topic.trim() || `${selectedLanguage} interview practice`,
+        programming_language: selectedLanguage,
+      });
 
-    if (res.ok) {
-      router.push(`/interview/${res.data.session_id}`);
+      if (res.ok) {
+        router.push(`/interview/${res.data.session_id}`);
+      } else {
+        const errData = res.data as unknown as { detail?: string };
+        const msg = errData?.detail ?? "Failed to start interview. Please try again.";
+        toast("error", msg);
+      }
+    } catch {
+      toast("error", "Something went wrong. Please try again.");
+    } finally {
+      setStarting(false);
     }
-  }, [selectedDifficulty, topic, selectedLanguage, router]);
+  }, [selectedDifficulty, topic, selectedLanguage, router, toast]);
 
   // Navigation helpers
 
