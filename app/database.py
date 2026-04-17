@@ -112,7 +112,7 @@ async def create_tables(retries: int = 5, delay: float = 2.0) -> None:
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
             logger.info("Database tables created / verified (attempt %d)", attempt)
-            return
+            break
         except Exception as exc:
             logger.warning(
                 "DB table creation attempt %d/%d failed: %s",
@@ -122,6 +122,42 @@ async def create_tables(retries: int = 5, delay: float = 2.0) -> None:
                 logger.error("All %d DB connection attempts failed", retries)
                 raise
             await asyncio.sleep(delay * attempt)
+
+    # Run lightweight column migrations for existing tables
+    await _run_column_migrations()
+
+
+async def _run_column_migrations() -> None:
+    """Add columns that were introduced after initial table creation.
+
+    SQLAlchemy create_all() only creates missing tables, not missing columns.
+    This handles schema evolution without requiring Alembic.
+    """
+    migrations = [
+        ("users", "profile_picture", "VARCHAR(512)"),
+    ]
+
+    async with engine.begin() as conn:
+        for table, column, col_type in migrations:
+            try:
+                if _is_sqlite:
+                    # SQLite: no IF NOT EXISTS on ADD COLUMN — catch error
+                    await conn.execute(
+                        text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+                    )
+                    logger.info("Added column %s.%s", table, column)
+                else:
+                    # PostgreSQL: supports IF NOT EXISTS
+                    await conn.execute(
+                        text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {col_type}")
+                    )
+                    logger.info("Ensured column %s.%s exists", table, column)
+            except Exception as exc:
+                # Column likely already exists (SQLite path)
+                if "duplicate column" in str(exc).lower() or "already exists" in str(exc).lower():
+                    logger.debug("Column %s.%s already exists, skipping", table, column)
+                else:
+                    logger.warning("Migration for %s.%s failed: %s", table, column, exc)
 
 
 # Backwards-compatible alias

@@ -226,9 +226,13 @@ async def request_context_middleware(request: Request, call_next):
 # Request body size limit
 @app.middleware("http")
 async def request_size_limit_middleware(request: Request, call_next):
-    """Reject requests with a body larger than MAX_REQUEST_BODY_BYTES."""
+    """Reject requests with a body larger than MAX_REQUEST_BODY_BYTES.
+
+    Profile picture uploads are exempt (handled by their own 5 MB limit).
+    """
     content_length = request.headers.get("content-length")
-    if content_length and int(content_length) > settings.MAX_REQUEST_BODY_BYTES:
+    is_upload = request.url.path.endswith("/profile-picture") and request.method == "PUT"
+    if not is_upload and content_length and int(content_length) > settings.MAX_REQUEST_BODY_BYTES:
         return JSONResponse(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             content={
