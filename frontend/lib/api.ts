@@ -185,6 +185,11 @@ export function logout(): void {
   clearToken();
 }
 
+/** Change the authenticated user's password. */
+export async function changePassword(body: { current_password: string; new_password: string }) {
+  return request<{ message: string }>("PUT", "/auth/password", body);
+}
+
 // Interview endpoints
 
 /** Start a new interview session. */
