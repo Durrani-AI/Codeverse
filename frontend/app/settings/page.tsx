@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { changePassword } from "@/lib/api";
+import { changePassword, changeUsername, deleteAccount } from "@/lib/api";
 import ProtectedRoute from "@/components/protected-route";
 
-type Tab = "overview" | "security";
+type Tab = "profile" | "security";
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [activeTab, setActiveTab] = useState<Tab>("profile");
 
   return (
     <ProtectedRoute>
@@ -20,7 +20,7 @@ export default function SettingsPage() {
           {/* Sidebar */}
           <nav className="w-48 shrink-0 space-y-1">
             {([
-              { key: "overview", label: "Overview" },
+              { key: "profile", label: "Profile" },
               { key: "security", label: "Security" },
             ] as const).map(({ key, label }) => (
               <button
@@ -39,7 +39,7 @@ export default function SettingsPage() {
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            {activeTab === "overview" && <OverviewTab />}
+            {activeTab === "profile" && <ProfileTab />}
             {activeTab === "security" && <SecurityTab />}
           </div>
         </div>
@@ -48,19 +48,63 @@ export default function SettingsPage() {
   );
 }
 
-/* ─── Overview Tab ─────────────────────────────────────────────────── */
+/* ─── Profile Tab ──────────────────────────────────────────────────── */
 
-function OverviewTab() {
-  const { user } = useAuth();
+function ProfileTab() {
+  const { user, logout } = useAuth();
+  const [newUsername, setNewUsername] = useState("");
+  const [usernameLoading, setUsernameLoading] = useState(false);
+  const [usernameMsg, setUsernameMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  async function handleUsernameChange(e: React.FormEvent) {
+    e.preventDefault();
+    setUsernameMsg(null);
+    if (!newUsername.trim() || newUsername.trim().length < 3) {
+      setUsernameMsg({ type: "error", text: "Username must be at least 3 characters" });
+      return;
+    }
+    setUsernameLoading(true);
+    try {
+      const res = await changeUsername({ username: newUsername.trim() });
+      if (res.ok) {
+        setUsernameMsg({ type: "success", text: "Username updated. Reloading..." });
+        setNewUsername("");
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        const data = res.data as unknown as { detail?: string };
+        setUsernameMsg({ type: "error", text: data?.detail || "Failed to update username" });
+      }
+    } catch {
+      setUsernameMsg({ type: "error", text: "Something went wrong" });
+    } finally {
+      setUsernameLoading(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteLoading(true);
+    try {
+      const res = await deleteAccount();
+      if (res.ok) {
+        logout();
+      }
+    } catch {
+      // fallback
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
+      {/* Account Info */}
       <div className="card">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground-muted mb-6">
           Account Information
         </h2>
 
-        {/* Email */}
         <div className="flex items-center justify-between py-4 border-b border-surface-border/40">
           <div>
             <p className="text-sm font-medium text-foreground-muted">Email</p>
@@ -68,7 +112,6 @@ function OverviewTab() {
           </div>
         </div>
 
-        {/* Username */}
         <div className="flex items-center justify-between py-4 border-b border-surface-border/40">
           <div>
             <p className="text-sm font-medium text-foreground-muted">Username</p>
@@ -76,7 +119,6 @@ function OverviewTab() {
           </div>
         </div>
 
-        {/* Member since */}
         <div className="flex items-center justify-between py-4">
           <div>
             <p className="text-sm font-medium text-foreground-muted">Member since</p>
@@ -91,6 +133,74 @@ function OverviewTab() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Change Username */}
+      <div className="card">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground-muted mb-6">
+          Change Username
+        </h2>
+        <form onSubmit={handleUsernameChange} className="space-y-4 max-w-md">
+          <div>
+            <label className="block text-sm font-medium text-foreground-muted mb-1.5">
+              New Username
+            </label>
+            <input
+              type="text"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              placeholder={user?.username}
+              className="input"
+              required
+              minLength={3}
+            />
+          </div>
+
+          {usernameMsg && (
+            <p className={`text-sm ${usernameMsg.type === "success" ? "text-green-400" : "text-red-400"}`}>
+              {usernameMsg.text}
+            </p>
+          )}
+
+          <button type="submit" disabled={usernameLoading} className="btn-primary btn-sm">
+            {usernameLoading ? "Saving..." : "Update Username"}
+          </button>
+        </form>
+      </div>
+
+      {/* Delete Account */}
+      <div className="card border-danger/20">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-danger mb-4">
+          Danger Zone
+        </h2>
+        <p className="text-sm text-foreground-muted mb-4">
+          Permanently delete your account and all associated data. This action cannot be undone.
+        </p>
+
+        {!showDeleteConfirm ? (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="btn-danger btn-sm"
+          >
+            Delete Account
+          </button>
+        ) : (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleDeleteAccount}
+              disabled={deleteLoading}
+              className="btn-danger btn-sm"
+            >
+              {deleteLoading ? "Deleting..." : "Yes, Delete My Account"}
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              className="btn-ghost btn-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -197,11 +307,7 @@ function SecurityTab() {
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary btn-sm"
-          >
+          <button type="submit" disabled={loading} className="btn-primary btn-sm">
             {loading ? "Saving..." : "Update Password"}
           </button>
         </form>

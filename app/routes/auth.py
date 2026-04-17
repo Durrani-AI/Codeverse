@@ -160,3 +160,43 @@ async def change_password(
     await db.commit()
     logger.info("Password changed for user %s", current_user.username)
     return {"message": "Password updated successfully"}
+
+
+# --- Update username ---
+
+@router.put("/username", response_model=UserResponse)
+async def change_username(
+    body: dict,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Change the authenticated user's username."""
+    new_username = body.get("username", "").strip()
+    if not new_username or len(new_username) < 3:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Username must be at least 3 characters")
+    if not new_username.replace("_", "").replace("-", "").isalnum():
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Username may only contain letters, digits, _ and -")
+
+    existing = await db.execute(select(User).where(User.username == new_username))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status.HTTP_409_CONFLICT, "Username already taken")
+
+    current_user.username = new_username
+    await db.commit()
+    await db.refresh(current_user)
+    logger.info("Username changed to %s", new_username)
+    return UserResponse.model_validate(current_user)
+
+
+# --- Delete account ---
+
+@router.delete("/account", status_code=status.HTTP_200_OK)
+async def delete_account(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Permanently delete the authenticated user's account and all data."""
+    logger.info("Deleting account for user %s", current_user.username)
+    await db.delete(current_user)
+    await db.commit()
+    return {"message": "Account deleted successfully"}

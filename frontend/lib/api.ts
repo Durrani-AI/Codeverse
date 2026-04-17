@@ -190,6 +190,16 @@ export async function changePassword(body: { current_password: string; new_passw
   return request<{ message: string }>("PUT", "/auth/password", body);
 }
 
+/** Change the authenticated user's username. */
+export async function changeUsername(body: { username: string }) {
+  return request<User>("PUT", "/auth/username", body);
+}
+
+/** Permanently delete the authenticated user's account. */
+export async function deleteAccount() {
+  return request<{ message: string }>("DELETE", "/auth/account");
+}
+
 // Interview endpoints
 
 /** Start a new interview session. */

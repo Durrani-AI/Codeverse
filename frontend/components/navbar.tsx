@@ -37,40 +37,28 @@ export default function Navbar() {
             href="/dashboard"
             className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground"
           >
-            <span className="bg-gradient-to-r from-brand-300 via-brand-400 to-brand-500 bg-clip-text text-transparent font-bold text-lg tracking-tighter">
+            <span className="bg-gradient-to-r from-brand-300 via-brand-400 to-brand-500 bg-clip-text text-transparent font-bold text-xl tracking-tighter">
               Code
             </span>
-            <span className="-ml-1.5 font-bold text-lg tracking-tighter">verse</span>
+            <span className="-ml-1.5 font-bold text-xl tracking-tighter">verse</span>
           </Link>
         </div>
 
-        {/* Right - profile icon + dropdown */}
-        <div className="relative flex items-center" ref={dropdownRef}>
+        {/* Right - profile icon + username + dropdown */}
+        <div className="relative flex items-center gap-2" ref={dropdownRef}>
+          {/* Clickable profile icon only */}
           <button
             onClick={() => setDropdownOpen((prev) => !prev)}
-            className="flex items-center gap-2 rounded-md px-2 py-1.5 transition-all duration-200 hover:bg-white/[0.04]"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500/20 text-brand-400 text-sm font-semibold uppercase transition-all duration-200 hover:bg-brand-500/30 hover:ring-2 hover:ring-brand-500/40"
           >
-            {/* Profile icon */}
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500/20 text-brand-400 text-sm font-semibold uppercase">
-              {user?.username?.charAt(0) || "U"}
-            </div>
-            {user && (
-              <span className="hidden text-sm text-foreground-muted/80 sm:inline">
-                {user.username}
-              </span>
-            )}
-            {/* Chevron */}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className={`h-4 w-4 text-foreground-muted/60 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
+            {user?.username?.charAt(0) || "U"}
           </button>
+          {/* Username - static, no hover effect */}
+          {user && (
+            <span className="hidden text-sm font-medium text-foreground sm:inline">
+              {user.username}
+            </span>
+          )}
 
           {/* Dropdown */}
           {dropdownOpen && (
