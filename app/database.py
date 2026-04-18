@@ -134,7 +134,19 @@ async def _run_column_migrations() -> None:
     This handles schema evolution without requiring Alembic.
     """
     migrations = [
+        # Users
         ("users", "profile_picture", "VARCHAR(512)"),
+        # InterviewSessions
+        ("interview_sessions", "topic", "VARCHAR(255)"),
+        ("interview_sessions", "programming_language", "VARCHAR(50)"),
+        ("interview_sessions", "completed_at", "TIMESTAMP"),
+        # Questions
+        ("questions", "question_type", "VARCHAR(20) DEFAULT 'coding'"),
+        # UserResponses
+        ("user_responses", "response_code", "TEXT"),
+        # Feedbacks
+        ("feedbacks", "strengths", "JSON"),
+        ("feedbacks", "improvements", "JSON"),
     ]
 
     async with engine.begin() as conn:

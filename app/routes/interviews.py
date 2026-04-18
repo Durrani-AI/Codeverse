@@ -126,8 +126,8 @@ async def start_interview(
         db.add(session)
         await db.flush()
     except Exception as exc:
-        logger.error("DB error creating session: %s", exc)
-        raise HTTPException(500, "Failed to create interview session.")
+        logger.error("DB error creating session: %s", exc, exc_info=True)
+        raise HTTPException(500, f"Failed to create interview session: {exc}")
 
     # Generate the first question via LLM
     try:
