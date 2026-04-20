@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { InterviewCard } from "@/components/interview-card";
 import ProtectedRoute from "@/components/protected-route";
 import { useToast } from "@/components/toast";
+import Mascot from "@/components/mascot";
 
 // Types
 
@@ -212,14 +213,9 @@ export default function DashboardPage() {
   return (
     <ProtectedRoute>
     <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 space-y-10 animate-fade-in">
-      {/*  Welcome header */}
+      {/*  Mascot greeting */}
       <header>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Welcome back, <span className="text-accent">{user?.username ?? ""}</span>
-        </h1>
-        <p className="mt-2 text-foreground-muted text-sm">
-          Ready to sharpen your coding skills? Pick a language and start practising.
-        </p>
+        <Mascot username={user?.username ?? "there"} />
       </header>
 
       {/*  Quick stats */}
