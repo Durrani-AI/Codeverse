@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
 
     # CORS - stored as a plain string so pydantic-settings never tries JSON-parsing.
-    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:3001,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:5173"
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:3001,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:5173,https://ai-codeverse.vercel.app"
 
     def get_cors_origins(self) -> List[str]:
         """Parse ALLOWED_ORIGINS string into a list.
