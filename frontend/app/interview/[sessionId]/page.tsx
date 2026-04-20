@@ -149,7 +149,7 @@ export default function InterviewSessionPage() {
         session,
         currentQuestion: lastQ,
         questionIndex: questions.length,
-        totalQuestions: session.questions_count || questions.length,
+        totalQuestions: session.total_questions || session.questions_count || questions.length,
         loading: false,
         error: null,
       });
@@ -168,6 +168,7 @@ export default function InterviewSessionPage() {
     if (!question) return;
 
     setSubmission({ submitting: true, isComplete: false });
+    setState((s) => ({ ...s, error: null }));
 
     const res = await submitAnswer(sessionId, {
       question_id: question.id,
@@ -176,6 +177,15 @@ export default function InterviewSessionPage() {
     });
 
     if (!res.ok) {
+      // If session was already completed (e.g. previous attempt succeeded
+      // but response was lost), redirect to results instead of showing error.
+      if (res.status === 400) {
+        const session = await getSession(sessionId);
+        if (session.ok && session.data.status === "completed") {
+          router.push(`/interview/${sessionId}/results`);
+          return;
+        }
+      }
       setSubmission({ submitting: false, isComplete: false });
       setState((s) => ({ ...s, error: "Failed to submit answer. Please try again." }));
       return;
@@ -211,6 +221,7 @@ export default function InterviewSessionPage() {
     if (!question) return;
 
     setSubmission({ submitting: true, isComplete: false });
+    setState((s) => ({ ...s, error: null }));
 
     const res = await submitAnswer(sessionId, {
       question_id: question.id,
@@ -218,6 +229,13 @@ export default function InterviewSessionPage() {
     });
 
     if (!res.ok) {
+      if (res.status === 400) {
+        const session = await getSession(sessionId);
+        if (session.ok && session.data.status === "completed") {
+          router.push(`/interview/${sessionId}/results`);
+          return;
+        }
+      }
       setSubmission({ submitting: false, isComplete: false });
       return;
     }
@@ -393,12 +411,12 @@ export default function InterviewSessionPage() {
       <div className="space-y-1">
         <div className="flex justify-between text-xs text-foreground-muted">
           <span>Progress</span>
-          <span>{Math.round((questionIndex / Math.max(totalQuestions, 1)) * 100)}%</span>
+          <span>{Math.round(((questionIndex - 1) / Math.max(totalQuestions, 1)) * 100)}%</span>
         </div>
         <div className="h-1 w-full rounded-full bg-surface-border/50 overflow-hidden">
           <div
             className="h-1 rounded-full bg-brand-500 transition-all duration-500"
-            style={{ width: `${(questionIndex / Math.max(totalQuestions, 1)) * 100}%` }}
+            style={{ width: `${((questionIndex - 1) / Math.max(totalQuestions, 1)) * 100}%` }}
           />
         </div>
       </div>

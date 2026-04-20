@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1028"/>
+      <stop offset="100%" stop-color="#0f0a1a"/>
+    </linearGradient>
+    <linearGradient id="bracketGrad" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#b388ff"/>
+      <stop offset="50%" stop-color="#9c5cf7"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="slashGrad" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="borderGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#9c5cf7" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0.1"/>
+    </linearGradient>
+  </defs>
+  <!-- Background rounded rect -->
+  <rect x="16" y="16" width="480" height="480" rx="96" ry="96" fill="url(#bgGrad)"/>
+  <!-- Subtle border -->
+  <rect x="16" y="16" width="480" height="480" rx="96" ry="96" fill="none" stroke="url(#borderGrad)" stroke-width="4"/>
+  <!-- Left bracket < -->
+  <path d="M200 168 L120 256 L200 344" fill="none" stroke="url(#bracketGrad)" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Slash / -->
+  <line x1="280" y1="160" x2="232" y2="352" stroke="url(#slashGrad)" stroke-width="30" stroke-linecap="round"/>
+  <!-- Right bracket > -->
+  <path d="M312 168 L392 256 L312 344" fill="none" stroke="url(#bracketGrad)" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

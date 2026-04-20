@@ -18,6 +18,10 @@ export const metadata: Metadata = {
   title: "Codeverse",
   description:
     "AI-powered mock interviews for coding, behavioral, and system design. Real feedback. Real progress.",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/apple-icon.svg",
+  },
 };
 
 export default function RootLayout({

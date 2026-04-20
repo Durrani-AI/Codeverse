@@ -33,6 +33,7 @@ export interface InterviewSession {
   completed_at: string | null;
   questions: Question[];
   questions_count: number;
+  total_questions: number;
 }
 
 // 3. Question

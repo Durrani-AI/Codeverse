@@ -202,10 +202,16 @@ class InterviewSessionResponse(BaseModel):
         description="Total number of questions asked in this session",
         examples=[5],
     )
+    total_questions: int = Field(
+        default=5,
+        description="Target number of questions for this session",
+        examples=[5],
+    )
 
     @classmethod
     def from_orm_with_count(cls, obj: Any) -> "InterviewSessionResponse":
         """Build from ORM object, auto-computing questions_count."""
+        from app.config import settings as app_settings
         questions = [QuestionResponse.model_validate(q) for q in (obj.questions or [])]
         return cls(
             id=obj.id,
@@ -219,6 +225,7 @@ class InterviewSessionResponse(BaseModel):
             completed_at=obj.completed_at,
             questions=questions,
             questions_count=len(questions),
+            total_questions=app_settings.DEFAULT_QUESTIONS_COUNT,
         )
 
     model_config = ConfigDict(from_attributes=True)
