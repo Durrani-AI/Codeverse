@@ -107,8 +107,8 @@ class InterviewSession(Base):
     )
     topic = Column(String(255), nullable=True)
     programming_language = Column(String(50), nullable=True)
-    started_at = Column(DateTime, default=func.now(), nullable=False)
-    completed_at = Column(DateTime, nullable=True)
+    started_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
 
     user = relationship("User", back_populates="sessions")
     questions = relationship(
