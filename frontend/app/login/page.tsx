@@ -6,7 +6,6 @@ import { useAuth } from "@/lib/auth-context";
 import { login as apiLogin } from "@/lib/api";
 import { Button } from "@/components/ui";
 import { useToast } from "@/components/toast";
-import LogoIcon from "@/components/logo-icon";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -66,9 +65,6 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-md space-y-8">
         {/* Header */}
         <div className="text-center space-y-3">
-          <div className="flex justify-center mb-2">
-            <LogoIcon size={48} />
-          </div>
           <h1 className="text-3xl font-bold tracking-tight">Welcome Back</h1>
           <p className="text-foreground-muted text-sm">
             Sign in to continue on Codeverse

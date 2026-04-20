@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import TypingAnimation from "@/components/typing-animation";
-import LogoIcon from "@/components/logo-icon";
 
 export default function Home() {
   return (
@@ -24,7 +23,6 @@ export default function Home() {
       <div className="relative z-10 max-w-2xl text-center space-y-8">
         {/* Brand mark */}
         <div className="animate-fade-in flex flex-col items-center">
-          <LogoIcon size={96} className="mb-6" />
           <h1 className="text-6xl sm:text-7xl md:text-8xl font-bold tracking-tighter">
             <span className="bg-gradient-to-r from-brand-300 via-brand-400 to-brand-500 bg-clip-text text-transparent">
               Code

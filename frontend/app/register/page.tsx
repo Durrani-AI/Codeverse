@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { register as apiRegister } from "@/lib/api";
 import { Button } from "@/components/ui";
 import { useToast } from "@/components/toast";
-import LogoIcon from "@/components/logo-icon";
 
 function validatePassword(pw: string): string | null {
   if (pw.length < 8) return "Password must be at least 8 characters.";
@@ -124,9 +123,6 @@ export default function RegisterPage() {
       <div className="relative z-10 w-full max-w-md space-y-8">
         {/* Header */}
         <div className="text-center space-y-3">
-          <div className="flex justify-center mb-2">
-            <LogoIcon size={48} />
-          </div>
           <h1 className="text-3xl font-bold tracking-tight">Create Account</h1>
           <p className="text-foreground-muted text-sm">
             Join Codeverse and start practicing
