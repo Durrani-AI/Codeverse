@@ -222,19 +222,28 @@ async def submit_answer(
     db.add(user_resp)
     await db.flush()
 
-    # Evaluate the answer via LLM
-    eval_data = await evaluate_answer(
-        question=question.question_text,
-        user_answer=body.response_text,
-        interview_type=session.interview_type.value,
-        difficulty=session.difficulty_level.value,
-        programming_language=session.programming_language,
-    )
+    # Score logic: if skipped or empty, score=0, else call LLM
+    answer_text = (body.response_text or "").strip().lower()
+    if not answer_text or answer_text in {"(skipped)", "skipped"}:
+        eval_data = {
+            "score": 0,
+            "feedback": "No answer submitted.",
+            "strengths": [],
+            "improvements": [],
+        }
+    else:
+        eval_data = await evaluate_answer(
+            question=question.question_text,
+            user_answer=body.response_text,
+            interview_type=session.interview_type.value,
+            difficulty=session.difficulty_level.value,
+            programming_language=session.programming_language,
+        )
 
     fb = Feedback(
         response_id=user_resp.id,
         ai_feedback_text=eval_data.get("feedback", ""),
-        score=int(clamp(eval_data.get("score") or 5, 1, 10)),
+        score=int(clamp(eval_data.get("score") if eval_data.get("score") is not None else 0, 0, 10)),
         strengths=eval_data.get("strengths", []),
         improvements=eval_data.get("improvements", []),
     )
