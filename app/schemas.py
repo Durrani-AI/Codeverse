@@ -139,6 +139,36 @@ class PasswordChange(BaseModel):
     )
 
 
+class UsernameChange(BaseModel):
+    """Request body for changing a user's username."""
+
+    username: str = Field(
+        ...,
+        min_length=3,
+        max_length=50,
+        description="New username (3-50 chars, letters/digits/underscores/hyphens only)",
+        examples=["new_username"],
+    )
+
+    @field_validator("username")
+    @classmethod
+    def username_format(cls, v: str) -> str:
+        cleaned = v.strip()
+        if not cleaned.replace("_", "").replace("-", "").isalnum():
+            raise ValueError("Username may only contain letters, digits, _ and -")
+        return cleaned
+
+
+class EmailChange(BaseModel):
+    """Request body for changing a user's email."""
+
+    email: EmailStr = Field(
+        ...,
+        description="New email address",
+        examples=["newemail@example.com"],
+    )
+
+
 # --- InterviewSession schemas ---
 
 class InterviewSessionCreate(BaseModel):
@@ -336,9 +366,9 @@ class FeedbackResponse(BaseModel):
     )
     score: int = Field(
         ...,
-        ge=1,
+        ge=0,
         le=10,
-        description="Overall quality score from 1 (poor) to 10 (excellent)",
+        description="Overall quality score from 0 (skipped/wrong) to 10 (excellent)",
         examples=[7],
     )
     strengths: Optional[List[str]] = Field(

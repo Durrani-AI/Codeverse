@@ -358,9 +358,18 @@ async def evaluate_answer(
         f"{lang_context}\n"
         f"Question:\n{question}\n\n"
         f"Candidate's Answer:\n{user_answer}\n\n"
+        "SCORING RUBRIC (you MUST follow this strictly):\n"
+        "  0  = No answer, skipped, or completely irrelevant response\n"
+        "  1-3 = Mostly wrong, major misunderstandings, or only trivially related\n"
+        "  4-6 = Partially correct, shows some understanding but has significant gaps or errors\n"
+        "  7-8 = Mostly correct, demonstrates solid understanding with minor issues\n"
+        "  9-10 = Fully correct, demonstrates excellent understanding and best practices\n\n"
+        "Be strict and fair. A wrong answer MUST score 0-3. "
+        "A partially correct answer scores 4-6. "
+        "Only a genuinely strong answer deserves 7+.\n\n"
         "Respond with ONLY valid JSON in this format:\n"
         "{\n"
-        '  "score": <1-10>,\n'
+        '  "score": <0-10>,\n'
         '  "feedback": "<2-3 sentence overall feedback>",\n'
         '  "strengths": ["<strength 1>", "<strength 2>"],\n'
         '  "improvements": ["<area 1>", "<area 2>"]\n'
@@ -372,7 +381,9 @@ async def evaluate_answer(
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a fair technical interviewer. "
+                    "content": "You are a strict but fair technical interviewer. "
+                               "Score answers honestly using the provided rubric. "
+                               "Wrong answers MUST get low scores. "
                                "Respond ONLY with valid JSON.",
                 },
                 {"role": "user", "content": prompt},
@@ -384,7 +395,7 @@ async def evaluate_answer(
     except Exception as exc:
         logger.error("Answer evaluation failed: %s", exc)
         return {
-            "score": None,
+            "score": 0,
             "feedback": "Evaluation temporarily unavailable.",
             "strengths": [],
             "improvements": [],

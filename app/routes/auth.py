@@ -22,7 +22,7 @@ from jose import JWTError, jwt
 from app.config import settings
 from app.database import get_db
 from app.models import User
-from app.schemas import PasswordChange, Token, UserCreate, UserLogin, UserResponse
+from app.schemas import EmailChange, PasswordChange, Token, UsernameChange, UserCreate, UserLogin, UserResponse
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -169,16 +169,12 @@ async def change_password(
 
 @router.put("/username", response_model=UserResponse)
 async def change_username(
-    body: dict,
+    body: UsernameChange,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Change the authenticated user's username."""
-    new_username = body.get("username", "").strip()
-    if not new_username or len(new_username) < 3:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Username must be at least 3 characters")
-    if not new_username.replace("_", "").replace("-", "").isalnum():
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Username may only contain letters, digits, _ and -")
+    new_username = body.username
 
     existing = await db.execute(select(User).where(User.username == new_username))
     if existing.scalar_one_or_none():
@@ -276,14 +272,12 @@ async def remove_profile_picture(
 
 @router.put("/email", response_model=UserResponse)
 async def change_email(
-    body: dict,
+    body: EmailChange,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Change the authenticated user's email."""
-    new_email = body.get("email", "").strip().lower()
-    if not new_email or "@" not in new_email:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid email address")
+    new_email = body.email.lower()
 
     existing = await db.execute(select(User).where(User.email == new_email))
     if existing.scalar_one_or_none():

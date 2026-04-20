@@ -275,6 +275,14 @@ export async function cancelSession(sessionId: string) {
   );
 }
 
+/** Permanently delete an interview session and all its data. */
+export async function deleteSessionPermanently(sessionId: string) {
+  return request<{ message: string }>(
+    "DELETE",
+    `/interviews/${sessionId}?permanent=true`,
+  );
+}
+
 // Analytics endpoints
 
 /** Get analytics overview for the authenticated user. */

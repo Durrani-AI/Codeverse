@@ -19,6 +19,7 @@ import {
   getAnalyticsOverview,
   listSessions,
   startInterview,
+  deleteSessionPermanently,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { cn, scoreColor } from "@/lib/utils";
@@ -109,6 +110,7 @@ export default function DashboardPage() {
   const [topic, setTopic] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("Python");
   const [starting, setStarting] = useState(false);
+  const [showRecent, setShowRecent] = useState(false);
 
   // Fetch data on mount
 
@@ -178,6 +180,24 @@ export default function DashboardPage() {
     (id: string) => router.push(`/interview/${id}/results`),
     [router],
   );
+
+  // Delete a session permanently
+  const handleDeleteSession = useCallback(async (id: string) => {
+    try {
+      const res = await deleteSessionPermanently(id);
+      if (res.ok) {
+        setState((s) => ({
+          ...s,
+          sessions: s.sessions.filter((sess) => sess.id !== id),
+        }));
+        toast("success", "Session removed");
+      } else {
+        toast("error", "Failed to remove session");
+      }
+    } catch {
+      toast("error", "Something went wrong");
+    }
+  }, [toast]);
 
   // Render
 
@@ -352,11 +372,26 @@ export default function DashboardPage() {
       <section aria-label="Recent interviews" className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground tracking-tight">Recent Interviews</h2>
-          {sessions.length > 6 && (
-            <Button variant="ghost" size="sm" onClick={() => router.push("/sessions")}>
-              View all {"->"}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {sessions.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowRecent((prev) => !prev)}
+              >
+                {showRecent ? "Hide" : `Show (${sessions.length})`}
+                <svg
+                  className={cn("h-4 w-4 ml-1 transition-transform", showRecent && "rotate-180")}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </Button>
+            )}
+          </div>
         </div>
 
         {sessions.length === 0 ? (
@@ -365,18 +400,21 @@ export default function DashboardPage() {
               No interviews yet. Start your first one above!
             </p>
           </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sessions.slice(0, 6).map((session) => (
-              <InterviewCard
-                key={session.id}
-                session={session}
-                onResume={handleResume}
-                onViewDetails={handleViewDetails}
-              />
-            ))}
+        ) : showRecent ? (
+          <div className="space-y-4 animate-fade-in">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sessions.map((session) => (
+                <InterviewCard
+                  key={session.id}
+                  session={session}
+                  onResume={handleResume}
+                  onViewDetails={handleViewDetails}
+                  onDelete={handleDeleteSession}
+                />
+              ))}
+            </div>
           </div>
-        )}
+        ) : null}
       </section>
 
     </main>

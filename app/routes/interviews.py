@@ -131,11 +131,13 @@ async def start_interview(
 
     # Generate the first question via LLM
     try:
+        previous = await _previous_questions_for(session.id, db)
         question_text = await generate_interview_question(
             interview_type=request.interview_type.value,
             difficulty=request.difficulty_level.value,
             topic=request.topic,
             programming_language=request.programming_language,
+            previous_questions=previous,
         )
     except ConnectionError as exc:
         await db.rollback()
@@ -229,7 +231,7 @@ async def submit_answer(
             "score": 0,
             "feedback": "No answer submitted.",
             "strengths": [],
-            "improvements": [],
+            "improvements": ["Attempt the question next time"],
         }
     else:
         eval_data = await evaluate_answer(
@@ -240,10 +242,14 @@ async def submit_answer(
             programming_language=session.programming_language,
         )
 
+    # Safely extract score, defaulting to 0 if None or missing
+    raw_score = eval_data.get("score")
+    safe_score = int(clamp(raw_score if raw_score is not None else 0, 0, 10))
+
     fb = Feedback(
         response_id=user_resp.id,
         ai_feedback_text=eval_data.get("feedback", ""),
-        score=int(clamp(eval_data.get("score") if eval_data.get("score") is not None else 0, 0, 10)),
+        score=safe_score,
         strengths=eval_data.get("strengths", []),
         improvements=eval_data.get("improvements", []),
     )
@@ -259,6 +265,7 @@ async def submit_answer(
 
     if not is_complete:
         try:
+            previous = await _previous_questions_for(session.id, db)
             next_q_text = await generate_followup_question(
                 original_question=question.question_text,
                 candidate_answer=body.response_text,
@@ -444,24 +451,32 @@ async def get_session(
     status_code=status.HTTP_200_OK,
     summary="Cancel or delete an interview session",
 )
-async def cancel_session(
+async def cancel_or_delete_session(
     session_id: str,
+    permanent: bool = False,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Cancel an in-progress session.
+    """Cancel an in-progress session or permanently delete any session.
 
-    In-progress sessions are marked as completed with ``completed_at`` set.
-    The session record is preserved for analytics.
+    Query params:
+        permanent=true  - permanently delete the session and all associated data
+        permanent=false - mark in-progress sessions as completed (default)
     """
     session = await _get_session_or_404(
         session_id, db, user_id=current_user.id,
     )
 
+    if permanent:
+        await db.delete(session)
+        await db.commit()
+        logger.info("Session %s permanently deleted by user %s", session_id, current_user.id)
+        return {"message": "Session deleted", "session_id": session_id}
+
     if session.status == SessionStatus.COMPLETED:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            "Session is already completed.",
+            "Session is already completed. Use ?permanent=true to delete it.",
         )
 
     session.status = SessionStatus.COMPLETED

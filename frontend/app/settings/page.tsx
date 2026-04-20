@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 import { useToast } from "@/components/toast";
 import ProtectedRoute from "@/components/protected-route";
+import BackButton from "@/components/back-button";
 
 type Tab = "profile" | "security";
 
@@ -23,6 +24,7 @@ export default function SettingsPage() {
   return (
     <ProtectedRoute>
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <BackButton href="/dashboard" label="Back to Dashboard" />
         <h1 className="text-2xl font-bold mb-1">Settings</h1>
         <p className="text-foreground-muted text-sm mb-8">Account summary and quick actions</p>
 

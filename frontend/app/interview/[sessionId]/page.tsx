@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { CodeEditor, type SupportedLanguage } from "@/components/code-editor";
 import ProtectedRoute from "@/components/protected-route";
+import BackButton from "@/components/back-button";
 
 // State types
 
@@ -294,6 +295,7 @@ export default function InterviewSessionPage() {
   return (
     <ProtectedRoute>
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-6 animate-fade-in">
+      <BackButton href="/dashboard" label="Back to Dashboard" />
       {/* Top bar */}
       <header className="glass flex flex-wrap items-center justify-between gap-4 py-3 px-5">
         {/* Left - session info */}

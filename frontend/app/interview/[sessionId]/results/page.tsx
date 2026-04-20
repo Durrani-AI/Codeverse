@@ -33,6 +33,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import ProtectedRoute from "@/components/protected-route";
+import BackButton from "@/components/back-button";
 
 // Types
 
@@ -315,12 +316,7 @@ export default function InterviewResultsPage() {
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="text-sm text-foreground-muted/60 hover:text-foreground transition-all mb-2 flex items-center gap-1"
-          >
-            ← Back to Dashboard
-          </button>
+          <BackButton href="/dashboard" label="Back to Dashboard" />
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             {formatInterviewType(session.interview_type)} Results
           </h1>
