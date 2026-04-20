@@ -110,7 +110,8 @@ api.interceptors.response.use(
         const msgs = (data.details as Array<{ field?: string; message?: string }>)
           .map((d) => d.message || "Invalid value")
           .join(". ");
-        return Promise.reject(new Error(msgs || "Validation failed"));
+        error.message = msgs || "Validation failed";
+        return Promise.reject(error);
       }
 
       const message =
@@ -119,7 +120,9 @@ api.interceptors.response.use(
         (typeof data?.error === "string" ? data.error : undefined) ??
         `Request failed with status ${status}`;
 
-      return Promise.reject(new Error(message));
+      // Preserve the original AxiosError so request() can extract the status code
+      error.message = message;
+      return Promise.reject(error);
     }
 
     // Network / timeout error
