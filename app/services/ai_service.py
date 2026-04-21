@@ -359,14 +359,17 @@ async def evaluate_answer(
         f"Question:\n{question}\n\n"
         f"Candidate's Answer:\n{user_answer}\n\n"
         "SCORING RUBRIC (you MUST follow this strictly):\n"
-        "  0  = No answer, skipped, or completely irrelevant response\n"
+        "  0  = No answer, skipped, or completely irrelevant/incorrect response\n"
         "  1-3 = Mostly wrong, major misunderstandings, or only trivially related\n"
         "  4-6 = Partially correct, shows some understanding but has significant gaps or errors\n"
         "  7-8 = Mostly correct, demonstrates solid understanding with minor issues\n"
         "  9-10 = Fully correct, demonstrates excellent understanding and best practices\n\n"
-        "Be strict and fair. A wrong answer MUST score 0-3. "
-        "A partially correct answer scores 4-6. "
-        "Only a genuinely strong answer deserves 7+.\n\n"
+        "CRITICAL RULES:\n"
+        "- Score ONLY based on CORRECTNESS of the answer.\n"
+        "- NEVER reward speed, brevity, or how quickly the answer was submitted.\n"
+        "- A wrong answer is ALWAYS 0-3, regardless of any other factor.\n"
+        "- Do NOT give credit for attempting the question if the answer is wrong.\n"
+        "- Only a genuinely correct and well-explained answer deserves 7+.\n\n"
         "Respond with ONLY valid JSON in this format:\n"
         "{\n"
         '  "score": <0-10>,\n'
@@ -493,9 +496,18 @@ async def generate_session_feedback(
         f"interview session on {topic}.\n"
         f"{lang_context}\n"
         f"Questions & Answers:\n{qa_block}\n\n"
+        "CRITICAL SCORING RULES (you MUST follow these):\n"
+        "- The overall_score MUST be based PRIMARILY on whether the answers are CORRECT.\n"
+        "- NEVER factor in speed, response time, or how quickly answers were submitted.\n"
+        "- If ALL answers are incorrect, the overall_score MUST be 0.\n"
+        "- If MOST answers are incorrect, the overall_score MUST be 0-2.\n"
+        "- Speed only matters as a minor bonus IF the answers are already correct.\n"
+        "- An incorrect answer answered quickly is STILL incorrect — give it no credit.\n"
+        "- Base overall_score on the average of individual scores shown above.\n"
+        "- The summary MUST honestly state when answers were incorrect.\n\n"
         "Provide a holistic assessment. Respond with ONLY valid JSON:\n"
         "{\n"
-        '  "overall_score": <1-10>,\n'
+        '  "overall_score": <0-10>,\n'
         '  "summary": "<3-4 sentence overall assessment>",\n'
         '  "key_strengths": ["<strength 1>", "<strength 2>"],\n'
         '  "areas_for_improvement": ["<area 1>", "<area 2>"],\n'
@@ -509,7 +521,9 @@ async def generate_session_feedback(
                 {
                     "role": "system",
                     "content": "You are a senior technical interviewer writing a "
-                               "post-interview debrief. Respond ONLY with valid JSON.",
+                               "post-interview debrief. Score ONLY based on answer correctness. "
+                               "NEVER reward speed or quick responses when answers are wrong. "
+                               "All wrong answers = score 0. Respond ONLY with valid JSON.",
                 },
                 {"role": "user", "content": prompt},
             ],

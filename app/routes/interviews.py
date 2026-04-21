@@ -386,9 +386,25 @@ async def session_feedback(
             f"Feedback generation failed: {exc}",
         )
 
+    # --- Server-side score guardrail ---
+    # Prevent LLM from inflating overall score when answers are wrong.
+    ai_overall = ai_result.get("overall_score")
+    valid_scores = [s for s in individual_scores if s is not None]
+
+    if valid_scores:
+        avg_individual = sum(valid_scores) / len(valid_scores)
+
+        # All answers scored 0 → force overall to 0
+        if all(s == 0 for s in valid_scores):
+            ai_overall = 0
+
+        # Cap overall at (average + 1) to prevent hallucinated inflation
+        elif ai_overall is not None and ai_overall > avg_individual + 1:
+            ai_overall = round(min(ai_overall, avg_individual + 1))
+
     return SessionFeedbackResponse(
         session_id=session.id,
-        overall_score=ai_result.get("overall_score"),
+        overall_score=ai_overall,
         summary=ai_result.get("summary", ""),
         key_strengths=ai_result.get("key_strengths", []),
         areas_for_improvement=ai_result.get("areas_for_improvement", []),
