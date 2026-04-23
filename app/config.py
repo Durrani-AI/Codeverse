@@ -1,12 +1,25 @@
-﻿"""
+"""
 Application configuration via pydantic-settings.
 All values can be overridden through environment variables or a .env file.
 """
 
-from pydantic_settings import BaseSettings
-from typing import List
+import logging
+import secrets
 from functools import lru_cache
+from typing import List
+
 import json
+from pydantic_settings import BaseSettings
+
+logger = logging.getLogger(__name__)
+
+_INSECURE_KEY_MARKERS = (
+    "your-secret-key",
+    "your-super-secret",
+    "change-this",
+    "changeme",
+    "secret",
+)
 
 
 class Settings(BaseSettings):
@@ -51,6 +64,14 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
+    # CSRF
+    CSRF_SECRET: str = ""  # auto-generated at startup if empty
+
+    # Cookie settings
+    COOKIE_SECURE: bool = True     # True in production (HTTPS)
+    COOKIE_SAMESITE: str = "none"  # "none" for cross-origin, "lax" for same-origin
+    COOKIE_DOMAIN: str = ""        # empty = default to response domain
+
     # AI Provider - "ollama" for local development, "groq" for cloud deployment
     AI_PROVIDER: str = "ollama"
 
@@ -68,11 +89,48 @@ class Settings(BaseSettings):
     MIN_INTERVIEW_DURATION_MINUTES: int = 15
     DEFAULT_QUESTIONS_COUNT: int = 5
 
-    # Rate limiting
-    RATE_LIMIT_PER_MINUTE: int = 60
+    # Rate limiting (per-minute)
+    RATE_LIMIT_PER_MINUTE: int = 60         # general endpoints
+    RATE_LIMIT_AUTH_PER_MINUTE: int = 10    # login / register
+    RATE_LIMIT_AI_PER_MINUTE: int = 20     # AI-heavy endpoints (interview start, answer, feedback)
 
     # Security
     MAX_REQUEST_BODY_BYTES: int = 1_048_576  # 1 MB
+
+    def validate_production_security(self) -> None:
+        """Enforce critical security invariants in production.
+
+        Called during application startup. In production (DEBUG=False),
+        refuses to start with a known-insecure SECRET_KEY.
+        """
+        key_lower = self.SECRET_KEY.lower()
+        is_insecure = any(marker in key_lower for marker in _INSECURE_KEY_MARKERS)
+
+        if not self.DEBUG and is_insecure:
+            raise RuntimeError(
+                "FATAL: SECRET_KEY is insecure. Set a strong random SECRET_KEY "
+                "via environment variable before running in production. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+            )
+
+        if not self.DEBUG and is_insecure:
+            logger.critical("Insecure SECRET_KEY detected in production!")
+
+        if self.DEBUG and is_insecure:
+            logger.warning(
+                "SECRET_KEY is the default insecure value. "
+                "This is acceptable for local development only."
+            )
+
+        # Auto-generate CSRF secret if not provided
+        if not self.CSRF_SECRET:
+            object.__setattr__(self, "CSRF_SECRET", secrets.token_urlsafe(32))
+            logger.info("Auto-generated CSRF_SECRET (ephemeral, per-process)")
+
+        # In development, relax cookie settings
+        if self.DEBUG:
+            object.__setattr__(self, "COOKIE_SECURE", False)
+            object.__setattr__(self, "COOKIE_SAMESITE", "lax")
 
     class Config:
         env_file = ".env"

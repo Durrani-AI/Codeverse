@@ -18,6 +18,7 @@ from app.models import (
     QuestionType,
     SessionStatus,
 )
+from app.utils.sanitize import sanitize_text
 
 
 # --- User schemas ---
@@ -58,7 +59,7 @@ class UserCreate(BaseModel):
     def username_alphanumeric(cls, v: str) -> str:
         if not v.replace("_", "").replace("-", "").isalnum():
             raise ValueError("Username may only contain letters, digits, _ and -")
-        return v
+        return sanitize_text(v)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -198,6 +199,11 @@ class InterviewSessionCreate(BaseModel):
         examples=["Python"],
     )
 
+    @field_validator("topic")
+    @classmethod
+    def sanitize_topic(cls, v: str) -> str:
+        return sanitize_text(v)
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -322,6 +328,11 @@ class UserResponseCreate(BaseModel):
         examples=["def reverse_list(head):\n    prev = None\n    ..."],
     )
 
+    @field_validator("response_text")
+    @classmethod
+    def sanitize_response(cls, v: str) -> str:
+        return sanitize_text(v)
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -434,7 +445,7 @@ class SessionFeedbackResponse(BaseModel):
         ..., examples=["a1b2c3d4-e5f6-7890-abcd-ef1234567890"]
     )
     overall_score: Optional[float] = Field(
-        None, ge=1, le=10, examples=[7.5]
+        None, ge=0, le=10, examples=[7.5]
     )
     summary: str = Field(
         ...,

@@ -71,16 +71,35 @@ const api: AxiosInstance = axios.create({
     Accept: "application/json",
   },
   timeout: 60_000, // 60 s - generous for Render free-tier cold starts + AI responses
+  withCredentials: true, // Send HttpOnly cookies with every request
 });
 
-// Request interceptor - attach Bearer token
+// CSRF token helper - reads the csrf_token cookie set by the backend on login
+function getCsrfToken(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+// Request interceptor - attach Bearer token + CSRF header
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Attach Bearer token (fallback for when cookies aren't available)
     const token = getToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Attach CSRF token on state-changing requests
+    const method = (config.method || "").toUpperCase();
+    if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
+      const csrf = getCsrfToken();
+      if (csrf && config.headers) {
+        config.headers["X-CSRF-Token"] = csrf;
+      }
+    }
+
     return config;
   },
   (error: AxiosError) => Promise.reject(error),
@@ -183,8 +202,13 @@ export async function getMe() {
   return request<User>("GET", "/auth/me");
 }
 
-/** Log out - simply clears the stored token (stateless JWT). */
-export function logout(): void {
+/** Log out - clears stored token and calls server to clear cookies. */
+export async function logout(): Promise<void> {
+  try {
+    await api.post("/auth/logout");
+  } catch {
+    // Ignore errors - we clear local state regardless
+  }
   clearToken();
 }
 

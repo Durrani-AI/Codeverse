@@ -23,7 +23,7 @@ import {
 import { useRouter } from "next/navigation";
 
 import type { User } from "@/types";
-import { getToken, setToken, clearToken, getMe } from "@/lib/api";
+import { getToken, setToken, clearToken, getMe, logout as apiLogout } from "@/lib/api";
 
 // Context shape
 
@@ -99,8 +99,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [router],
   );
 
-  const logout = useCallback(() => {
-    clearToken();
+  const logout = useCallback(async () => {
+    await apiLogout();
     setUser(null);
     router.push("/login");
   }, [router]);

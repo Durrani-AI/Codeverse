@@ -8,7 +8,10 @@ Run (production):
     uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
 """
 
+import hashlib
+import hmac
 import logging
+import secrets
 import time
 import uuid
 from collections import defaultdict
@@ -23,6 +26,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+
+from jose import JWTError, jwt
 
 from app.config import settings
 from app.database import check_db_connection, close_db, create_tables, engine
@@ -45,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 # --- Constants ---
 
-API_VERSION = "3.0.0"
+API_VERSION = "3.1.0"
 API_PREFIX = "/api/v1"
 
 # --- OpenAPI tag metadata ---
@@ -92,32 +97,40 @@ tags_metadata = [
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: create tables + seed demo user. Shutdown: dispose engine."""
+    """Startup: validate security, create tables + seed demo user. Shutdown: dispose engine."""
     logger.info("Starting up ...")
+
+    # Enforce production security invariants
+    settings.validate_production_security()
+
     await create_tables()
     logger.info("Database tables ready")
 
-    # Seed a default demo user for pre-auth / testing usage
-    from app.database import AsyncSessionLocal
-    from app.models import User
+    # Seed a default demo user for pre-auth / testing usage (dev only)
+    if settings.DEBUG:
+        from app.database import AsyncSessionLocal
+        from app.models import User
+        from passlib.context import CryptContext
 
-    async with AsyncSessionLocal() as session:
-        from sqlalchemy import select
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-        result = await session.execute(
-            select(User).where(User.id == "00000000-0000-0000-0000-000000000001")
-        )
-        if result.scalar_one_or_none() is None:
-            session.add(
-                User(
-                    id="00000000-0000-0000-0000-000000000001",
-                    email="demo@example.com",
-                    username="demo",
-                    hashed_password="not-a-real-hash",
-                )
+        async with AsyncSessionLocal() as session:
+            from sqlalchemy import select
+
+            result = await session.execute(
+                select(User).where(User.id == "00000000-0000-0000-0000-000000000001")
             )
-            await session.commit()
-            logger.info("Created default demo user")
+            if result.scalar_one_or_none() is None:
+                session.add(
+                    User(
+                        id="00000000-0000-0000-0000-000000000001",
+                        email="demo@example.com",
+                        username="demo",
+                        hashed_password=pwd_context.hash("demo-not-for-production"),
+                    )
+                )
+                await session.commit()
+                logger.info("Created default demo user (dev only)")
 
     logger.info("Application ready - serving on http://%s:%s", settings.HOST, settings.PORT)
     yield
@@ -174,8 +187,8 @@ app.add_middleware(
     allow_origins=settings.get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["X-Request-ID", "X-Process-Time"],
+    allow_headers=["*", "X-CSRF-Token"],
+    expose_headers=["X-Request-ID", "X-Process-Time", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
 )
 
 
@@ -188,6 +201,21 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+
+    # Content Security Policy
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data: blob: https:; "
+        "connect-src 'self' https://*.onrender.com https://*.vercel.app; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'"
+    )
+
     if not settings.DEBUG:
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
@@ -244,43 +272,171 @@ async def request_size_limit_middleware(request: Request, call_next):
     return await call_next(request)
 
 
-# Rate limiting (in-memory, per-IP)
+# --- Per-user + per-IP tiered rate limiting ---
+
 _rate_limit_store: dict[str, list[float]] = defaultdict(list)
+
+_AUTH_PATHS = {"/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/forgot-password"}
+_EXEMPT_PATHS = {"/health", "/docs", "/redoc", "/openapi.json", "/", "/api"}
+
+
+def _get_rate_tier(path: str, method: str) -> tuple[str, int]:
+    """Determine the rate-limit tier and max requests for a given path."""
+    if path in _AUTH_PATHS:
+        return "auth", settings.RATE_LIMIT_AUTH_PER_MINUTE
+
+    if method == "POST" and path.startswith("/api/v1/interviews/"):
+        return "ai", settings.RATE_LIMIT_AI_PER_MINUTE
+
+    return "general", settings.RATE_LIMIT_PER_MINUTE
+
+
+def _extract_user_id_from_request(request: Request) -> str | None:
+    """Extract user ID from JWT (cookie or header) without raising."""
+    token = request.cookies.get("access_token")
+    if not token:
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        return payload.get("sub")
+    except (JWTError, Exception):
+        return None
 
 
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
-    """Enforce a sliding-window per-IP request limit.
+    """Enforce sliding-window rate limits.
 
-    Returns 429 when the client exceeds RATE_LIMIT_PER_MINUTE.
-    Health-check and docs paths are exempt.
+    - Per-user (by user ID from JWT) for authenticated requests
+    - Per-IP for unauthenticated requests
+    - Tiered: auth endpoints (10/min), AI endpoints (20/min), general (60/min)
     """
-    exempt_prefixes = ("/health", "/docs", "/redoc", "/openapi.json", "/")
-    if request.url.path in exempt_prefixes:
+    path = request.url.path
+
+    if path in _EXEMPT_PATHS:
         return await call_next(request)
 
+    tier, max_requests = _get_rate_tier(path, request.method)
+
+    user_id = _extract_user_id_from_request(request)
     client_ip = request.client.host if request.client else "unknown"
+    rate_key = f"user:{user_id}:{tier}" if user_id else f"ip:{client_ip}:{tier}"
+
     now = time.time()
     window = 60.0
 
-    # Prune expired entries
-    _rate_limit_store[client_ip] = [
-        ts for ts in _rate_limit_store[client_ip] if now - ts < window
+    _rate_limit_store[rate_key] = [
+        ts for ts in _rate_limit_store[rate_key] if now - ts < window
     ]
 
-    if len(_rate_limit_store[client_ip]) >= settings.RATE_LIMIT_PER_MINUTE:
-        logger.warning("Rate limit exceeded for %s", client_ip)
+    remaining = max_requests - len(_rate_limit_store[rate_key])
+    reset_at = int(now + window)
+
+    if remaining <= 0:
+        who = f"user={user_id}" if user_id else f"ip={client_ip}"
+        logger.warning("Rate limit exceeded: %s on tier=%s path=%s", who, tier, path)
         return JSONResponse(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             content={
                 "error": "rate_limited",
-                "message": f"Rate limit exceeded. Maximum {settings.RATE_LIMIT_PER_MINUTE} requests per minute.",
+                "message": f"Rate limit exceeded. Maximum {max_requests} requests per minute for {tier} endpoints.",
                 "status_code": 429,
             },
-            headers={"Retry-After": "60"},
+            headers={
+                "Retry-After": "60",
+                "X-RateLimit-Remaining": "0",
+                "X-RateLimit-Reset": str(reset_at),
+                "X-RateLimit-Limit": str(max_requests),
+            },
         )
 
-    _rate_limit_store[client_ip].append(now)
+    _rate_limit_store[rate_key].append(now)
+
+    response = await call_next(request)
+    response.headers["X-RateLimit-Remaining"] = str(remaining - 1)
+    response.headers["X-RateLimit-Reset"] = str(reset_at)
+    response.headers["X-RateLimit-Limit"] = str(max_requests)
+    return response
+
+
+# --- CSRF Protection (double-submit cookie pattern) ---
+
+_CSRF_EXEMPT_PATHS = {
+    "/api/v1/auth/login",
+    "/api/v1/auth/register",
+    "/health", "/docs", "/redoc", "/openapi.json", "/api", "/",
+}
+_CSRF_METHODS = {"POST", "PUT", "DELETE", "PATCH"}
+
+
+def _generate_csrf_token() -> str:
+    """Generate a CSRF token using HMAC with the server's CSRF secret."""
+    nonce = secrets.token_urlsafe(32)
+    signature = hmac.new(
+        settings.CSRF_SECRET.encode(), nonce.encode(), hashlib.sha256,
+    ).hexdigest()
+    return f"{nonce}.{signature}"
+
+
+def _verify_csrf_token(token: str) -> bool:
+    """Verify a CSRF token's HMAC signature."""
+    if not token or "." not in token:
+        return False
+    try:
+        nonce, signature = token.rsplit(".", 1)
+        expected = hmac.new(
+            settings.CSRF_SECRET.encode(), nonce.encode(), hashlib.sha256,
+        ).hexdigest()
+        return hmac.compare_digest(signature, expected)
+    except Exception:
+        return False
+
+
+@app.middleware("http")
+async def csrf_middleware(request: Request, call_next):
+    """CSRF protection via double-submit cookie pattern.
+
+    - Verifies X-CSRF-Token header on state-changing requests
+    - Exempt: login, register, health, docs, and Authorization-header requests
+    """
+    path = request.url.path
+
+    if path in _CSRF_EXEMPT_PATHS:
+        return await call_next(request)
+
+    # Skip CSRF for requests using Authorization header (API clients / Swagger)
+    if request.headers.get("authorization"):
+        return await call_next(request)
+
+    if request.method in _CSRF_METHODS:
+        cookie_token = request.cookies.get("csrf_token")
+        header_token = request.headers.get("x-csrf-token")
+
+        if cookie_token and not header_token:
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content={
+                    "error": "csrf_failed",
+                    "message": "CSRF token missing. Include X-CSRF-Token header.",
+                    "status_code": 403,
+                },
+            )
+
+        if cookie_token and header_token:
+            if not _verify_csrf_token(header_token) or cookie_token != header_token:
+                return JSONResponse(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    content={
+                        "error": "csrf_failed",
+                        "message": "CSRF token invalid or mismatched.",
+                        "status_code": 403,
+                    },
+                )
+
     return await call_next(request)
 
 

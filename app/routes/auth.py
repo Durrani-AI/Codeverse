@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,21 +53,28 @@ def _create_access_token(data: dict, expires_delta: timedelta | None = None) -> 
 # --- JWT dependency (importable by other routers) ---
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
     db: AsyncSession = Depends(get_db),
+    token: str | None = Depends(oauth2_scheme),
 ) -> User:
     """Decode the Bearer JWT and return the corresponding User ORM object.
 
-    Raises 401 if the token is missing, expired, malformed, or the user
-    no longer exists in the database.
+    Reads from HttpOnly cookie first, falls back to Authorization header.
+    Raises 401 if no valid token is found.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    # Try cookie first, then Authorization header
+    jwt_token = request.cookies.get("access_token") or token
+    if not jwt_token:
+        raise credentials_exception
+
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(jwt_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str | None = payload.get("sub")
         if user_id is None:
             raise credentials_exception
@@ -120,9 +127,12 @@ async def register(body: UserCreate, db: AsyncSession = Depends(get_db)):
 # --- Login ---
 
 @router.post("/login", response_model=Token)
-async def login(body: UserLogin, db: AsyncSession = Depends(get_db)):
-    """Authenticate and return a JWT."""
+async def login(body: UserLogin, response: Response, db: AsyncSession = Depends(get_db)):
+    """Authenticate and return a JWT.
 
+    Sets HttpOnly cookie for browser clients and returns token in body for API clients.
+    Also sets a CSRF double-submit cookie (readable by JavaScript).
+    """
     result = await db.execute(select(User).where(User.username == body.username))
     user = result.scalar_one_or_none()
 
@@ -130,7 +140,45 @@ async def login(body: UserLogin, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid credentials")
 
     token = _create_access_token({"sub": user.id})
+
+    # Set HttpOnly cookie for browser auth
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+
+    # Set CSRF double-submit cookie (readable by JS)
+    import secrets, hashlib, hmac
+    nonce = secrets.token_urlsafe(32)
+    sig = hmac.new(
+        settings.CSRF_SECRET.encode(), nonce.encode(), hashlib.sha256,
+    ).hexdigest()
+    csrf_token = f"{nonce}.{sig}"
+
+    response.set_cookie(
+        key="csrf_token",
+        value=csrf_token,
+        httponly=False,  # JS must read this
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+
     return Token(access_token=token)
+
+
+@router.post("/logout")
+async def logout(response: Response):
+    """Clear auth cookies."""
+    response.delete_cookie("access_token", path="/")
+    response.delete_cookie("csrf_token", path="/")
+    return {"message": "Logged out successfully"}
 
 
 # --- Profile ---
