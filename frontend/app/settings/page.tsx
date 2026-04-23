@@ -28,7 +28,7 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-bold mb-1">Settings</h1>
         <p className="text-foreground-muted text-sm mb-8">Account summary and quick actions</p>
 
-        <div className="flex gap-8">
+        <div className="flex gap-8 settings-layout">
           {/* Sidebar */}
           <nav className="w-48 shrink-0 space-y-1">
             {([

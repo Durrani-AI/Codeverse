@@ -74,6 +74,7 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    email_verified = Column(Boolean, default=False, nullable=False)
     profile_picture = Column(String(512), nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
 
@@ -194,3 +195,45 @@ class Feedback(Base):
 
     def __repr__(self) -> str:
         return f"<Feedback id={self.id!r} score={self.score}>"
+
+
+class PasswordResetToken(Base):
+    """Time-limited token for password recovery.
+
+    Tokens are hashed before storage so a database leak
+    doesn't expose valid reset links.
+    """
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    token_hash = Column(String(64), nullable=False, unique=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+
+    user = relationship("User")
+
+    def __repr__(self) -> str:
+        return f"<PasswordResetToken id={self.id!r} used={self.used}>"
+
+
+class EmailVerificationToken(Base):
+    """Token sent to verify a user's email address after registration."""
+    __tablename__ = "email_verification_tokens"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    token_hash = Column(String(64), nullable=False, unique=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+
+    user = relationship("User")
+
+    def __repr__(self) -> str:
+        return f"<EmailVerificationToken id={self.id!r} used={self.used}>"

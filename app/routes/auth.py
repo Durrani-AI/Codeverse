@@ -8,6 +8,7 @@ that other routers can import to protect their endpoints.
 
 import logging
 import os
+import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -121,6 +122,24 @@ async def register(body: UserCreate, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(user)
     logger.info("Registered user %s", user.username)
+
+    # Send email verification
+    import hashlib
+    from app.models import EmailVerificationToken
+    from app.services.email_service import send_verification_email
+
+    raw_token = secrets.token_urlsafe(48)
+    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    expires = datetime.now(timezone.utc) + timedelta(hours=24)
+
+    db.add(EmailVerificationToken(
+        user_id=user.id,
+        token_hash=token_hash,
+        expires_at=expires,
+    ))
+    await db.commit()
+    await send_verification_email(user.email, raw_token)
+
     return UserResponse.model_validate(user)
 
 
@@ -181,7 +200,154 @@ async def logout(response: Response):
     return {"message": "Logged out successfully"}
 
 
+# --- Password Reset ---
+
+@router.post("/forgot-password")
+async def forgot_password(
+    body: "ForgotPasswordRequest",
+    db: AsyncSession = Depends(get_db),
+):
+    """Request a password reset link.
+
+    Always returns 200 regardless of whether the email exists
+    to prevent user enumeration attacks.
+    """
+    from app.schemas import ForgotPasswordRequest  # noqa: deferred
+    from app.models import PasswordResetToken
+    from app.services.email_service import send_password_reset_email
+    import hashlib
+
+    result = await db.execute(select(User).where(User.email == body.email))
+    user = result.scalar_one_or_none()
+
+    if user:
+        # Generate token
+        raw_token = secrets.token_urlsafe(48)
+        token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+        expires = datetime.now(timezone.utc) + timedelta(hours=1)
+
+        db.add(PasswordResetToken(
+            user_id=user.id,
+            token_hash=token_hash,
+            expires_at=expires,
+        ))
+        await db.commit()
+
+        await send_password_reset_email(user.email, raw_token)
+
+    return {"message": "If an account with that email exists, a reset link has been sent."}
+
+
+@router.post("/reset-password")
+async def reset_password(
+    body: "ResetPasswordRequest",
+    db: AsyncSession = Depends(get_db),
+):
+    """Reset password using a valid token from the forgot-password email."""
+    from app.schemas import ResetPasswordRequest  # noqa: deferred
+    from app.models import PasswordResetToken
+    import hashlib
+
+    token_hash = hashlib.sha256(body.token.encode()).hexdigest()
+
+    result = await db.execute(
+        select(PasswordResetToken).where(
+            PasswordResetToken.token_hash == token_hash,
+            PasswordResetToken.used == False,
+        )
+    )
+    reset_token = result.scalar_one_or_none()
+
+    if not reset_token:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid or expired reset token")
+
+    if reset_token.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Reset token has expired")
+
+    # Update password
+    user_result = await db.execute(select(User).where(User.id == reset_token.user_id))
+    user = user_result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "User not found")
+
+    user.hashed_password = _hash_password(body.new_password)
+    reset_token.used = True
+    await db.commit()
+
+    return {"message": "Password reset successfully. You can now log in."}
+
+
+# --- Email Verification ---
+
+@router.get("/verify-email")
+async def verify_email(
+    token: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Verify a user's email address using the token from the registration email."""
+    from app.models import EmailVerificationToken
+    import hashlib
+
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+
+    result = await db.execute(
+        select(EmailVerificationToken).where(
+            EmailVerificationToken.token_hash == token_hash,
+            EmailVerificationToken.used == False,
+        )
+    )
+    verify_token = result.scalar_one_or_none()
+
+    if not verify_token:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid or expired verification token")
+
+    if verify_token.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Verification token has expired")
+
+    # Mark email as verified
+    user_result = await db.execute(select(User).where(User.id == verify_token.user_id))
+    user = user_result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "User not found")
+
+    user.email_verified = True
+    verify_token.used = True
+    await db.commit()
+
+    return {"message": "Email verified successfully. You can now log in."}
+
+
+@router.post("/resend-verification")
+async def resend_verification(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Resend the email verification link for the current user."""
+    from app.models import EmailVerificationToken
+    from app.services.email_service import send_verification_email
+    import hashlib
+
+    if current_user.email_verified:
+        return {"message": "Email is already verified"}
+
+    raw_token = secrets.token_urlsafe(48)
+    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    expires = datetime.now(timezone.utc) + timedelta(hours=24)
+
+    db.add(EmailVerificationToken(
+        user_id=current_user.id,
+        token_hash=token_hash,
+        expires_at=expires,
+    ))
+    await db.commit()
+
+    await send_verification_email(current_user.email, raw_token)
+
+    return {"message": "Verification email sent"}
+
+
 # --- Profile ---
+
 
 @router.get("/me", response_model=UserResponse)
 async def get_profile(current_user: User = Depends(get_current_active_user)):

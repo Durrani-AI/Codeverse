@@ -25,6 +25,7 @@ import { useAuth } from "@/lib/auth-context";
 import { cn, scoreColor } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { InterviewCard } from "@/components/interview-card";
 import ProtectedRoute from "@/components/protected-route";
 import { useToast } from "@/components/toast";
@@ -61,31 +62,43 @@ const PROGRAMMING_LANGUAGES = [
 
 function DashboardSkeleton() {
   return (
-    <div className="animate-pulse space-y-8">
+    <div className="space-y-8">
       {/* Welcome skeleton */}
-      <div className="space-y-2">
-        <div className="h-8 w-64 rounded bg-surface-card" />
-        <div className="h-4 w-48 rounded bg-surface-card" />
+      <div className="space-y-3">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-4 w-48" />
       </div>
 
       {/* Stats skeleton */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="stat-card">
-            <div className="h-8 w-16 mx-auto rounded bg-surface-border" />
-            <div className="h-3 w-20 mx-auto mt-2 rounded bg-surface-border" />
+            <Skeleton className="h-8 w-16 mx-auto" />
+            <Skeleton className="h-3 w-20 mx-auto mt-3" />
           </div>
         ))}
       </div>
 
       {/* Start panel skeleton */}
-      <div className="card h-48" />
+      <Skeleton variant="card" className="h-56 p-6">
+        <div className="space-y-4">
+          <Skeleton className="h-5 w-48" />
+          <div className="grid sm:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-32 rounded" />
+            ))}
+          </div>
+        </div>
+      </Skeleton>
 
       {/* Cards grid skeleton */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="card h-44" />
-        ))}
+      <div className="space-y-4">
+        <Skeleton className="h-5 w-40" />
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} variant="card" className="h-44" />
+          ))}
+        </div>
       </div>
     </div>
   );

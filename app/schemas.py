@@ -92,6 +92,7 @@ class UserResponse(BaseModel):
     email: str = Field(..., examples=["alice@example.com"])
     username: str = Field(..., examples=["alice_dev"])
     is_active: bool = Field(..., examples=[True])
+    email_verified: bool = Field(default=False, examples=[True])
     profile_picture: Optional[str] = Field(None, examples=["/uploads/avatars/abc123.jpg"])
     created_at: datetime
 
@@ -138,6 +139,38 @@ class PasswordChange(BaseModel):
             }
         }
     )
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Request a password reset link."""
+
+    email: EmailStr = Field(
+        ..., description="Email address of the account", examples=["alice@example.com"]
+    )
+
+
+class ResetPasswordRequest(BaseModel):
+    """Reset password using a token from the forgot-password email."""
+
+    token: str = Field(
+        ..., min_length=1, description="Password reset token from email"
+    )
+    new_password: str = Field(
+        ...,
+        min_length=8,
+        max_length=128,
+        description="New password (8-128 chars, must contain a letter and a number)",
+    )
+
+    @field_validator("new_password")
+    @classmethod
+    def new_password_strength(cls, v: str) -> str:
+        import re
+        if not re.search(r"[a-zA-Z]", v):
+            raise ValueError("Password must contain at least one letter")
+        if not re.search(r"[0-9]", v):
+            raise ValueError("Password must contain at least one number")
+        return v
 
 
 class UsernameChange(BaseModel):

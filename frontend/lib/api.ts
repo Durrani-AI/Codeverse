@@ -212,6 +212,21 @@ export async function logout(): Promise<void> {
   clearToken();
 }
 
+/** Request a password reset link. */
+export async function forgotPassword(body: { email: string }) {
+  return request<{ message: string }>("POST", "/auth/forgot-password", body);
+}
+
+/** Reset password using a token. */
+export async function resetPassword(body: { token: string; new_password: string }) {
+  return request<{ message: string }>("POST", "/auth/reset-password", body);
+}
+
+/** Resend email verification link. */
+export async function resendVerification() {
+  return request<{ message: string }>("POST", "/auth/resend-verification");
+}
+
 /** Change the authenticated user's password. */
 export async function changePassword(body: { current_password: string; new_password: string }) {
   return request<{ message: string }>("PUT", "/auth/password", body);

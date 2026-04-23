@@ -159,4 +159,65 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Fade-in animation */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+}
+
+/* ─── Keyframes ──────────────────────────────────────────────────────── */
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Mobile responsive overrides ────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  /* Settings sidebar → horizontal tabs on mobile */
+  .settings-layout {
+    flex-direction: column;
+  }
+  .settings-layout nav {
+    width: 100%;
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .settings-layout nav button {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Stat cards: 2 columns on mobile */
+  .stat-card .stat-number {
+    font-size: 1.5rem;
+  }
+
+  /* Code editor: full width, smaller font */
+  .monaco-editor {
+    font-size: 13px !important;
+  }
+
+  /* Nav: tighter padding */
+  .navbar-mobile {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Interview cards: single column */
+  .interview-grid {
+    grid-template-columns: 1fr;
+  }
 }
