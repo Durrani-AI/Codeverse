@@ -6,11 +6,13 @@
       <Skeleton variant="card" className="h-44" />  // card block
 */
 
+import React from "react";
 import { cn } from "@/lib/utils";
 
 interface SkeletonProps {
   variant?: "line" | "circle" | "card";
   className?: string;
+  children?: React.ReactNode;
 }
 
 const baseClasses =
@@ -22,12 +24,14 @@ const variantClasses = {
   card: "rounded border border-surface-border/40",
 };
 
-export function Skeleton({ variant = "line", className }: SkeletonProps) {
+export function Skeleton({ variant = "line", className, children }: SkeletonProps) {
   return (
     <div
       className={cn(baseClasses, variantClasses[variant], className)}
       role="status"
       aria-label="Loading"
-    />
+    >
+      {children}
+    </div>
   );
 }
