@@ -92,6 +92,7 @@ class UserResponse(BaseModel):
     email: str = Field(..., examples=["alice@example.com"])
     username: str = Field(..., examples=["alice_dev"])
     is_active: bool = Field(..., examples=[True])
+    is_admin: bool = Field(default=False, examples=[False])
     email_verified: bool = Field(default=False, examples=[True])
     profile_picture: Optional[str] = Field(None, examples=["/uploads/avatars/abc123.jpg"])
     created_at: datetime

@@ -31,7 +31,7 @@ from jose import JWTError, jwt
 
 from app.config import settings
 from app.database import check_db_connection, close_db, create_tables, engine
-from app.routes import analytics, auth, interviews
+from app.routes import analytics, auth, interviews, admin
 
 # --- Logging ---
 
@@ -102,6 +102,15 @@ async def lifespan(app: FastAPI):
 
     # Enforce production security invariants
     settings.validate_production_security()
+
+    if settings.SENTRY_DSN:
+        import sentry_sdk
+        sentry_sdk.init(
+            dsn=settings.SENTRY_DSN,
+            traces_sample_rate=1.0,
+            environment="development" if settings.DEBUG else "production",
+        )
+        logger.info("Sentry initialized")
 
     await create_tables()
     logger.info("Database tables ready")
@@ -538,6 +547,11 @@ app.include_router(
     analytics.router,
     prefix=f"{API_PREFIX}/analytics",
     tags=["Analytics"],
+)
+app.include_router(
+    admin.router,
+    prefix=f"{API_PREFIX}/admin",
+    tags=["Admin"],
 )
 
 # Static files (legacy frontend)

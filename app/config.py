@@ -84,6 +84,9 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
 
+    # Monitoring
+    SENTRY_DSN: str = ""
+
     # Interview defaults
     MAX_INTERVIEW_DURATION_MINUTES: int = 60
     MIN_INTERVIEW_DURATION_MINUTES: int = 15

@@ -264,6 +264,29 @@ export async function removeProfilePicture() {
   return request<User>("DELETE", "/auth/profile-picture");
 }
 
+// ── Admin ─────────────────────────────────────────────────────────────
+
+export interface SystemStats {
+  total_users: number;
+  total_sessions: number;
+  completed_sessions: number;
+}
+
+/** Get system stats (Admin only). */
+export async function getSystemStats() {
+  return request<SystemStats>("GET", "/admin/stats");
+}
+
+/** List all users (Admin only). */
+export async function listUsers(skip = 0, limit = 100) {
+  return request<User[]>("GET", `/admin/users?skip=${skip}&limit=${limit}`);
+}
+
+/** Delete user as an admin. */
+export async function deleteUserAdmin(userId: string) {
+  return request<{ message: string }>("DELETE", `/admin/users/${userId}`);
+}
+
 /** Change the authenticated user's email. */
 export async function changeEmail(body: { email: string }) {
   return request<User>("PUT", "/auth/email", body);

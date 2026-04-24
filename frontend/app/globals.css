@@ -221,3 +221,43 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ─── Print Styles for PDF Export ────────────────────────────────────── */
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  .glass, .card, .stat-card {
+    background: white !important;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    color: black !important;
+    break-inside: avoid;
+  }
+
+  /* Make text visible on light background */
+  .text-foreground, .text-foreground-muted, .text-brand-400 {
+    color: black !important;
+  }
+
+  /* Hide navigation, buttons, and decorative elements */
+  nav, button, .print\:hidden, .navbar-mobile, .animate-fade-in {
+    display: none !important;
+  }
+
+  /* Expand all collapsed sections for printing */
+  .overflow-hidden {
+    overflow: visible !important;
+  }
+
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
