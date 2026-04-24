@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { InterviewSession } from "@/types";
 import { listSessions, deleteSessionPermanently } from "@/lib/api";
-import { useAuth } from "@/lib/auth-context";
 import { InterviewCard } from "@/components/interview-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import ProtectedRoute from "@/components/protected-route";
