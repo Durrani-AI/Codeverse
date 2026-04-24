@@ -57,6 +57,7 @@ export default function Navbar() {
             className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500/20 text-brand-400 text-sm font-semibold uppercase transition-all duration-200 hover:bg-brand-500/30 hover:ring-2 hover:ring-brand-500/40 overflow-hidden"
           >
             {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
             ) : (
               user?.username?.charAt(0) || "U"

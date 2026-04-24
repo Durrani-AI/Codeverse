@@ -13,7 +13,6 @@ import { useToast } from "@/components/toast";
 
 export default function HistoryPage() {
   const router = useRouter();
-  const { user } = useAuth();
   const { toast } = useToast();
 
   const [sessions, setSessions] = useState<InterviewSession[]>([]);

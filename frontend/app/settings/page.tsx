@@ -218,6 +218,7 @@ function ProfileTab() {
         <div className="flex items-center gap-6">
           <div className="relative group">
             {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={avatarUrl}
                 alt="Profile"
