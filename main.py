@@ -105,10 +105,24 @@ async def lifespan(app: FastAPI):
 
     if settings.SENTRY_DSN:
         import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+        from sentry_sdk.integrations.logging import LoggingIntegration
+
         sentry_sdk.init(
             dsn=settings.SENTRY_DSN,
-            traces_sample_rate=1.0,
             environment="development" if settings.DEBUG else "production",
+            traces_sample_rate=0.2,          # 20 % of requests → performance traces
+            profiles_sample_rate=0.1,        # 10 % of sampled traces → profiling
+            send_default_pii=False,          # never attach PII automatically
+            integrations=[
+                FastApiIntegration(transaction_style="endpoint"),
+                SqlalchemyIntegration(),
+                LoggingIntegration(
+                    level=logging.WARNING,   # breadcrumbs from WARNING+
+                    event_level=logging.ERROR,  # Sentry events from ERROR+
+                ),
+            ],
         )
         logger.info("Sentry initialized")
 

@@ -23,7 +23,7 @@ import {
 import { useRouter } from "next/navigation";
 
 import type { User } from "@/types";
-import { getToken, setToken, clearToken, getMe, logout as apiLogout } from "@/lib/api";
+import { clearToken, getMe, logout as apiLogout } from "@/lib/api";
 
 // Context shape
 
@@ -31,7 +31,7 @@ interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (token: string) => Promise<void>;
+  login: () => Promise<void>;
   logout: () => void;
 }
 
@@ -44,41 +44,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch the current user profile using the stored token
+  // Fetch the current user profile via the HttpOnly cookie (sent automatically)
   const fetchUser = useCallback(async () => {
-    const token = getToken();
-    if (!token) {
-      setUser(null);
-      setIsLoading(false);
-      return;
-    }
     try {
       const res = await getMe();
       if (res.ok) {
         setUser(res.data);
       } else {
-        clearToken();
         setUser(null);
       }
     } catch {
-      // Token was invalid / expired - wipe it
-      clearToken();
       setUser(null);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // On mount, try to restore the session from localStorage token
+  // On mount, try to restore the session via HttpOnly cookie
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
 
-  // Called after a successful login - stores the token, fetches the profile,
-  // then navigates to the dashboard.
+  // Called after a successful login - the backend already set the HttpOnly cookie;
+  // we just fetch the profile and navigate to the dashboard.
   const login = useCallback(
-    async (token: string) => {
-      setToken(token);
+    async () => {
       setIsLoading(true);
       try {
         const res = await getMe();

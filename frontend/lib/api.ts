@@ -36,30 +36,20 @@ import type {
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
 
-// Token helpers
+// Token helpers (in-memory only — auth relies on HttpOnly cookie)
 
 let accessToken: string | null = null;
 
 export function getToken(): string | null {
-  if (accessToken) return accessToken;
-  if (typeof window !== "undefined") {
-    accessToken = localStorage.getItem("token");
-  }
   return accessToken;
 }
 
 export function setToken(token: string): void {
   accessToken = token;
-  if (typeof window !== "undefined") {
-    localStorage.setItem("token", token);
-  }
 }
 
 export function clearToken(): void {
   accessToken = null;
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("token");
-  }
 }
 
 // Axios instance──
@@ -85,12 +75,6 @@ function getCsrfToken(): string | null {
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Attach Bearer token (fallback for when cookies aren't available)
-    const token = getToken();
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
     // Attach CSRF token on state-changing requests
     const method = (config.method || "").toUpperCase();
     if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
@@ -188,13 +172,9 @@ export async function register(body: RegisterRequest) {
   return request<User>("POST", "/auth/register", body);
 }
 
-/** Log in with username + password; stores token on success. */
+/** Log in with username + password. The backend sets the HttpOnly cookie. */
 export async function login(body: LoginRequest) {
-  const res = await request<TokenResponse>("POST", "/auth/login", body);
-  if (res.ok) {
-    setToken(res.data.access_token);
-  }
-  return res;
+  return request<TokenResponse>("POST", "/auth/login", body);
 }
 
 /** Get the currently authenticated user profile. */

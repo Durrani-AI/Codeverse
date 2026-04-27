@@ -1,45 +1,114 @@
-name: CI
+# Codeverse — CI / CD
+#
+# Runs on every push to main and on every PR targeting main.
+# Gates: ruff lint, mypy type-check, pytest (backend) + eslint, next build (frontend).
+# Deploy: Render (backend) and Vercel (frontend) auto-deploy on main merge.
+#         A Render deploy-hook is fired as an explicit signal so deploys only
+#         happen after CI passes.
+
+name: CI / CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Backend
+# ─────────────────────────────────────────────────────────────────────────────
 jobs:
-  test-backend:
+  backend:
+    name: Backend — Lint · Type-check · Test
     runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest pytest-asyncio
-    - name: Run tests
-      # Placeholder for pytest execution. 
-      # Since we don't have a test suite written yet, we'll just check syntax.
-      run: |
-        python -m compileall app main.py
 
-  build-frontend:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./frontend
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18.x'
-    - name: Install dependencies
-      run: npm ci
-    - name: Build
-      run: npm run build
-      env:
-        NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff mypy pytest pytest-asyncio httpx
+
+      - name: Lint — ruff
+        run: ruff check . --output-format=github
+
+      - name: Type-check — mypy
+        run: mypy app/ main.py --ignore-missing-imports --no-error-summary
+        continue-on-error: true   # advisory until full strict typing is adopted
+
+      - name: Test — pytest
+        run: pytest --tb=short -q
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./test_ci.db
+          SECRET_KEY: ci-test-only-not-for-production-xxxxxxxxxxxxxxxx
+          DEBUG: "true"
+          AI_PROVIDER: ollama
+          SENTRY_DSN: ""
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Frontend
+  # ─────────────────────────────────────────────────────────────────────────
+  frontend:
+    name: Frontend — Lint · Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Lint — ESLint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build check
+        working-directory: frontend
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: https://ai-interview-backend-3agx.onrender.com/api/v1
+          SENTRY_UPLOAD_SOURCEMAPS: "false"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Deploy (push to main only, after both CI jobs pass)
+  # ─────────────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy — trigger Render
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Trigger Render deploy hook
+        # Set RENDER_DEPLOY_HOOK in repo secrets (Settings → Secrets → Actions).
+        # Render dashboard → Service → Settings → Deploy Hooks → Add hook.
+        if: ${{ secrets.RENDER_DEPLOY_HOOK != '' }}
+        run: curl --fail-with-body -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+
+      - name: Summary
+        run: |
+          echo "### Deploy status" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend (Render):** auto-deploying from \`main\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend (Vercel):** auto-deploying from \`main\`" >> $GITHUB_STEP_SUMMARY

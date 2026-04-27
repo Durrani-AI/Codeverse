@@ -46,7 +46,7 @@ export default function LoginPage() {
         return;
       }
       toast("success", "Signed in successfully");
-      await login(res.data.access_token);
+      await login();
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : "Login failed. Please try again.";

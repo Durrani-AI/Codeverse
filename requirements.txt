@@ -23,3 +23,6 @@ python-jose[cryptography]==3.3.0
 
 # Environment
 python-dotenv==1.0.0
+
+# Monitoring
+sentry-sdk[fastapi]>=1.45.0
