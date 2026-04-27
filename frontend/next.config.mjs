@@ -16,21 +16,19 @@ const nextConfig = {
   },
 };
 
-// Wrap with Sentry only when a DSN is present (no-op in local dev without one).
-// https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+const hasAuthToken = Boolean(process.env.SENTRY_AUTH_TOKEN);
+
 export default withSentryConfig(nextConfig, {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
 
-  // Upload source maps to Sentry during CI/CD builds.
-  // Requires SENTRY_AUTH_TOKEN set in the build environment / Vercel settings.
-  silent: !process.env.CI,
+  // Skip source-map upload when no auth token is present (avoids build failure).
+  disableSourceMapUpload: !hasAuthToken,
 
-  // Wider client-side source-map upload for better stack traces.
-  widenClientFileUpload: true,
+  silent: true,
 
-  // Route browser-side Sentry requests through the Next.js server to avoid
-  // ad-blockers stripping the DSN request.
+  // Route browser-side Sentry requests through the Next.js server.
   tunnelRoute: "/monitoring",
 
   // Hide generated source maps from the deployed bundle.
