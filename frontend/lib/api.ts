@@ -33,8 +33,15 @@ import type {
 
 // Configuration
 
+const DEFAULT_DEV_API_URL = "http://127.0.0.1:8000/api/v1";
+const DEFAULT_PROD_API_URL =
+  "https://ai-interview-backend-3agx.onrender.com/api/v1";
+
 const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
+  process.env.NEXT_PUBLIC_API_URL ??
+  (process.env.NODE_ENV === "production"
+    ? DEFAULT_PROD_API_URL
+    : DEFAULT_DEV_API_URL);
 
 // Token helpers (in-memory only — auth relies on HttpOnly cookie)
 
@@ -97,11 +104,24 @@ api.interceptors.response.use(
     if (error.response) {
       const { status } = error.response;
 
-      // 401 Unauthorized -> clear tokens & redirect to login
+      // 401 Unauthorized -> clear tokens and redirect to login only when useful.
+      // Avoid redirect loops on public pages where /auth/me returning 401 is expected.
       if (status === 401) {
         clearToken();
         if (typeof window !== "undefined") {
-          window.location.href = "/login";
+          const path = window.location.pathname;
+          const isPublicAuthPage =
+            path.startsWith("/login") ||
+            path.startsWith("/register") ||
+            path.startsWith("/forgot-password") ||
+            path.startsWith("/reset-password");
+
+          const reqUrl = String(error.config?.url ?? "");
+          const isSessionCheck = reqUrl.includes("/auth/me");
+
+          if (!isPublicAuthPage && !isSessionCheck) {
+            window.location.href = "/login";
+          }
         }
       }
 
