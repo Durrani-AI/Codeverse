@@ -30,11 +30,13 @@ if (SENTRY_DSN) {
     // Strip sensitive headers/cookies from captured events.
     beforeSend(event) {
       if (event.request?.cookies) {
-        event.request.cookies = "[Filtered]";
+        delete event.request.cookies;
       }
       if (event.request?.headers) {
         delete event.request.headers["Authorization"];
+        delete event.request.headers["authorization"];
         delete event.request.headers["Cookie"];
+        delete event.request.headers["cookie"];
       }
       return event;
     },
