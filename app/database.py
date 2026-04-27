@@ -136,8 +136,8 @@ async def _run_column_migrations() -> None:
     migrations = [
         # Users
         ("users", "profile_picture", "VARCHAR(512)"),
-        ("users", "email_verified", "BOOLEAN DEFAULT 0"),
-        ("users", "is_admin", "BOOLEAN DEFAULT 0"),
+        ("users", "email_verified", "BOOLEAN DEFAULT FALSE"),
+        ("users", "is_admin", "BOOLEAN DEFAULT FALSE"),
         # InterviewSessions
         ("interview_sessions", "topic", "VARCHAR(255)"),
         ("interview_sessions", "programming_language", "VARCHAR(50)"),
