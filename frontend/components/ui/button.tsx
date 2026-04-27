@@ -13,7 +13,7 @@ import { Spinner } from "@/components/ui/spinner";
 
 // Types
 
-export type ButtonVariant = "primary" | "secondary" | "outline" | "ghost";
+export type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger";
 export type ButtonSize = "sm" | "md" | "lg";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -44,6 +44,9 @@ const variantClasses: Record<ButtonVariant, string> = {
   ghost:
     "bg-transparent text-foreground-muted hover:bg-white/[0.04] " +
     "hover:text-foreground focus-visible:ring-brand-500",
+  danger:
+    "bg-danger/10 text-danger border border-danger/30 hover:bg-danger/20 " +
+    "focus-visible:ring-red-500 active:bg-danger/30",
 };
 
 // Size classes
