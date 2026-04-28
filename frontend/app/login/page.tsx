@@ -2,13 +2,15 @@
 
 import { useState, useRef, useCallback, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { login as apiLogin } from "@/lib/api";
+import { login as apiLogin, setToken } from "@/lib/api";
 import { Button } from "@/components/ui";
 import { useToast } from "@/components/toast";
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
 
   const [username, setUsername] = useState("");
@@ -45,8 +47,17 @@ export default function LoginPage() {
         toast("error", msg);
         return;
       }
-      toast("success", "Signed in successfully");
-      await login();
+
+      // Keep token in memory only as a fallback if browser blocks cross-site cookies.
+      if (res.data?.access_token) {
+        setToken(res.data.access_token);
+      }
+
+      const redirected = await login();
+      if (redirected) {
+        toast("success", "Signed in successfully");
+        router.replace("/dashboard");
+      }
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : "Login failed. Please try again.";

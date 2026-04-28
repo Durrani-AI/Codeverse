@@ -7,7 +7,7 @@
  * - user: current User object (null while loading / logged out)
  * - isLoading: true while checking the token on mount
  * - isAuthenticated: shorthand for !!user
- * - login(token): store token + fetch profile
+ * - login(): fetch profile and navigate
  * - logout(): clear token + redirect to /login
  */
 
@@ -31,7 +31,7 @@ interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: () => Promise<void>;
+  login: () => Promise<boolean>;
   logout: () => void;
 }
 
@@ -68,20 +68,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Called after a successful login - the backend already set the HttpOnly cookie;
   // we just fetch the profile and navigate to the dashboard.
   const login = useCallback(
-    async () => {
+    async (): Promise<boolean> => {
       setIsLoading(true);
       try {
         const res = await getMe();
         if (res.ok) {
           setUser(res.data);
-          router.push("/dashboard");
+          router.replace("/dashboard");
+          return true;
         } else {
           clearToken();
           setUser(null);
+          throw new Error(
+            "Login succeeded but session could not be restored. Enable third-party cookies or try another browser.",
+          );
         }
       } catch {
         clearToken();
         setUser(null);
+        throw new Error(
+          "Login succeeded but session could not be restored. Enable third-party cookies or try another browser.",
+        );
       } finally {
         setIsLoading(false);
       }

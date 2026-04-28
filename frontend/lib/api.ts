@@ -43,7 +43,7 @@ const BASE_URL =
     ? DEFAULT_PROD_API_URL
     : DEFAULT_DEV_API_URL);
 
-// Token helpers (in-memory only — auth relies on HttpOnly cookie)
+// Token helpers (in-memory fallback; primary auth is HttpOnly cookie)
 
 let accessToken: string | null = null;
 
@@ -78,10 +78,17 @@ function getCsrfToken(): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-// Request interceptor - attach Bearer token + CSRF header
+// Request interceptor - attach optional Bearer fallback + CSRF header
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Attach in-memory Bearer token as a fallback when cookie auth is unavailable
+    // (e.g. blocked third-party cookies). Never persisted to localStorage.
+    const token = getToken();
+    if (token && config.headers && !String(config.url ?? "").includes("/auth/login")) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
     // Attach CSRF token on state-changing requests
     const method = (config.method || "").toUpperCase();
     if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
