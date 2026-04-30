@@ -499,6 +499,17 @@ export default function InterviewResultsPage() {
                         </div>
                       )}
 
+                      {/* Objective test summary */}
+                      {qf.test_summary && (
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-foreground-muted">Objective Correctness</p>
+                          <p className="text-sm text-foreground">
+                            Passed {qf.test_summary.passed_tests}/{qf.test_summary.total_tests} tests
+                            ({Math.round(qf.test_summary.pass_rate * 100)}%)
+                          </p>
+                        </div>
+                      )}
+
                       {/* AI Feedback */}
                       {qf.ai_feedback_text && (
                         <div className="space-y-1">

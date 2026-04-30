@@ -191,6 +191,7 @@ class Feedback(Base):
     score = Column(Integer, nullable=False)
     strengths = Column(JSON, nullable=True)
     improvements = Column(JSON, nullable=True)
+    test_summary = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
 
     response = relationship("UserResponse", back_populates="feedback")

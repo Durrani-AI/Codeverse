@@ -2,6 +2,7 @@
 Interview endpoints.
 
 POST /start                       - create session + first question
+POST /{session_id}/run            - run code against public test cases
 GET  /{session_id}                - fetch session with all questions & responses
 POST /{session_id}/answer         - submit an answer -> feedback + next question
 POST /{session_id}/feedback       - holistic session-level feedback
@@ -37,6 +38,8 @@ from app.schemas import (
     InterviewStartResponse,
     QuestionFeedbackDetail,
     QuestionOut,
+    RunCodeRequest,
+    RunCodeResponse,
     SessionFeedbackResponse,
     SubmitAnswerRequest,
     UserResponseOut,
@@ -48,6 +51,8 @@ from app.services.ai_service import (
     generate_interview_question,
     generate_session_feedback,
 )
+from app.services.code_runner import run_python_tests
+from app.services.problem_bank import get_problem_hidden_tests
 from app.utils.helpers import clamp
 
 router = APIRouter()
@@ -193,6 +198,71 @@ async def start_interview(
 # --- POST /{session_id}/answer ---
 
 @router.post(
+    "/{session_id}/run",
+    response_model=RunCodeResponse,
+    summary="Run candidate code against public tests",
+)
+async def run_code(
+    session_id: str,
+    body: RunCodeRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Run code against public test cases for the current coding question."""
+
+    session = await _get_session_or_404(session_id, db, user_id=current_user.id)
+
+    if session.interview_type.value != "coding":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Code runner is only available for coding interviews.")
+
+    result = await db.execute(
+        select(Question).where(
+            Question.id == body.question_id,
+            Question.session_id == session_id,
+        )
+    )
+    question = result.scalar_one_or_none()
+    if question is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Question not found in this session.")
+
+    problem_data = question.problem_data or {}
+    function_name = str(problem_data.get("function_name") or "").strip()
+    tests = problem_data.get("public_test_cases") or []
+    language = str(problem_data.get("programming_language") or session.programming_language or "python").strip().lower()
+
+    if language not in {"python", "py"}:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Run Code currently supports Python questions only.",
+        )
+
+    if not function_name or not tests:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Runnable public test cases are not available for this question.",
+        )
+
+    run_result = run_python_tests(
+        user_code=body.response_code,
+        function_name=function_name,
+        test_cases=tests,
+        timeout_sec=2.0,
+    )
+
+    return RunCodeResponse(
+        question_id=question.id,
+        total_tests=run_result["total_tests"],
+        passed_tests=run_result["passed_tests"],
+        failed_tests=run_result["failed_tests"],
+        all_passed=run_result["all_passed"],
+        language=language,
+        test_results=run_result["test_results"],
+    )
+
+
+# --- POST /{session_id}/answer ---
+
+@router.post(
     "/{session_id}/answer",
     response_model=AnswerSubmitResponse,
     summary="Submit an answer and get feedback + next question",
@@ -258,16 +328,74 @@ async def submit_answer(
             programming_language=session.programming_language,
         )
 
-    # Safely extract score, defaulting to 0 if None or missing
+    # Build feedback content and score.
     raw_score = eval_data.get("score")
-    safe_score = int(clamp(raw_score if raw_score is not None else 0, 0, 10))
+    ai_score = int(clamp(raw_score if raw_score is not None else 0, 0, 10))
+    safe_score = ai_score
+
+    feedback_text = str(eval_data.get("feedback") or "")
+    strengths = list(eval_data.get("strengths") or [])
+    improvements = list(eval_data.get("improvements") or [])
+    test_summary = None
+
+    # Objective phase (Phase 3): hidden correctness tests influence coding score.
+    language = str((question.problem_data or {}).get("programming_language") or session.programming_language or "").strip().lower()
+
+    if (
+        session.interview_type.value == "coding"
+        and language in {"python", "py"}
+        and body.response_code
+        and question.problem_data
+    ):
+        problem_data = question.problem_data if isinstance(question.problem_data, dict) else {}
+        function_name = str(problem_data.get("function_name") or "").strip()
+        hidden_tests = get_problem_hidden_tests(str(problem_data.get("problem_id") or ""))
+
+        if not hidden_tests:
+            hidden_tests = list(problem_data.get("public_test_cases") or [])
+
+        if function_name and hidden_tests:
+            judge = run_python_tests(
+                user_code=body.response_code,
+                function_name=function_name,
+                test_cases=hidden_tests,
+                timeout_sec=2.0,
+            )
+            total = int(judge["total_tests"])
+            passed = int(judge["passed_tests"])
+            pass_rate = (passed / total) if total > 0 else 0.0
+
+            objective_score = int(round(pass_rate * 10))
+            safe_score = int(clamp(round((objective_score * 0.75) + (ai_score * 0.25)), 0, 10))
+
+            test_summary = {
+                "total_tests": total,
+                "passed_tests": passed,
+                "failed_tests": total - passed,
+                "pass_rate": round(pass_rate, 3),
+                "used_hidden_tests": True,
+            }
+
+            if total > 0:
+                feedback_text = (
+                    f"{feedback_text}\n\n"
+                    f"Objective correctness check: passed {passed}/{total} hidden tests."
+                ).strip()
+
+                if pass_rate == 1.0:
+                    strengths.append("Passed all hidden correctness tests.")
+                else:
+                    improvements.append(
+                        f"Improve correctness: pass more hidden tests ({passed}/{total})."
+                    )
 
     fb = Feedback(
         response_id=user_resp.id,
-        ai_feedback_text=eval_data.get("feedback", ""),
+        ai_feedback_text=feedback_text,
         score=safe_score,
-        strengths=eval_data.get("strengths", []),
-        improvements=eval_data.get("improvements", []),
+        strengths=strengths,
+        improvements=improvements,
+        test_summary=test_summary,
     )
     db.add(fb)
     await db.flush()
@@ -375,6 +503,7 @@ async def session_feedback(
         fb_text = None
         fb_strengths = None
         fb_improvements = None
+        fb_test_summary = None
         for resp in (q.responses or []):
             answer_text = resp.response_text
             if resp.feedback:
@@ -382,6 +511,7 @@ async def session_feedback(
                 fb_text = resp.feedback.ai_feedback_text
                 fb_strengths = resp.feedback.strengths
                 fb_improvements = resp.feedback.improvements
+            fb_test_summary = resp.feedback.test_summary
         qa_pairs.append({
             "question": q.question_text,
             "answer": answer_text or "(no answer)",
@@ -395,6 +525,7 @@ async def session_feedback(
             ai_feedback_text=fb_text,
             strengths=fb_strengths,
             improvements=fb_improvements,
+            test_summary=fb_test_summary,
         ))
 
     if not qa_pairs:

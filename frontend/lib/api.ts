@@ -24,6 +24,8 @@ import type {
   LoginRequest,
   RecentSession,
   RegisterRequest,
+  RunCodeRequest,
+  RunCodeResponse,
   SessionFeedbackResponse,
   StartInterviewRequest,
   SubmitAnswerRequest,
@@ -314,6 +316,18 @@ export async function submitAnswer(
   return request<AnswerSubmitResponse>(
     "POST",
     `/interviews/${sessionId}/answer`,
+    body,
+  );
+}
+
+/** Run candidate code against public test cases for the current question. */
+export async function runCode(
+  sessionId: string,
+  body: RunCodeRequest,
+) {
+  return request<RunCodeResponse>(
+    "POST",
+    `/interviews/${sessionId}/run`,
     body,
   );
 }

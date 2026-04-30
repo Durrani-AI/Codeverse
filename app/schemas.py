@@ -340,11 +340,14 @@ class CodingProblemPayload(BaseModel):
     """LeetCode-style structured coding problem contract."""
 
     title: str
+    problem_id: Optional[str] = None
     statement: str
     difficulty: Optional[str] = None
     constraints: List[str] = Field(default_factory=list)
     examples: List[CodingProblemExample] = Field(default_factory=list)
     function_signature: Optional[str] = None
+    function_name: Optional[str] = None
+    params: List[str] = Field(default_factory=list)
     starter_code: Optional[str] = None
     public_test_cases: List[CodingProblemTestCase] = Field(default_factory=list)
     tags: List[str] = Field(default_factory=list)
@@ -419,6 +422,54 @@ UserResponseSubmit = UserResponseCreate
 SubmitAnswerRequest = UserResponseCreate
 
 
+class RunCodeRequest(BaseModel):
+    """Run candidate code against public tests before final submit."""
+
+    question_id: str = Field(
+        ...,
+        description="UUID of the current question",
+        examples=["f47ac10b-58cc-4372-a567-0e02b2c3d479"],
+    )
+    response_code: str = Field(
+        ...,
+        min_length=1,
+        description="Candidate code to execute",
+    )
+
+
+class RunCodeCaseResult(BaseModel):
+    """Result for one test case execution."""
+
+    input: str
+    expected_output: str
+    actual_output: Optional[str] = None
+    passed: bool
+    error: Optional[str] = None
+    runtime_ms: Optional[float] = None
+
+
+class RunCodeResponse(BaseModel):
+    """Aggregated run results across all public tests."""
+
+    question_id: str
+    total_tests: int
+    passed_tests: int
+    failed_tests: int
+    all_passed: bool
+    language: Optional[str] = None
+    test_results: List[RunCodeCaseResult] = Field(default_factory=list)
+
+
+class CodingTestSummary(BaseModel):
+    """Persisted summary of objective code test performance."""
+
+    total_tests: int
+    passed_tests: int
+    failed_tests: int
+    pass_rate: float
+    used_hidden_tests: bool = True
+
+
 class UserResponseOut(BaseModel):
     """Candidate's answer with optional feedback attached."""
 
@@ -463,6 +514,7 @@ class FeedbackResponse(BaseModel):
         description="Suggested areas for improvement",
         examples=[["Handle edge case of empty input", "Discuss space complexity"]],
     )
+    test_summary: Optional[CodingTestSummary] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -505,6 +557,7 @@ class QuestionFeedbackDetail(BaseModel):
     ai_feedback_text: Optional[str] = None
     strengths: Optional[List[str]] = None
     improvements: Optional[List[str]] = None
+    test_summary: Optional[CodingTestSummary] = None
 
     model_config = ConfigDict(from_attributes=True)
 

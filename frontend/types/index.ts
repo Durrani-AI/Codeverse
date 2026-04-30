@@ -21,10 +21,13 @@ export interface CodingProblemTestCase {
 
 export interface CodingProblemPayload {
   title: string;
+  problem_id?: string | null;
   statement: string;
   difficulty?: string | null;
   constraints: string[];
   examples: CodingProblemExample[];
+  function_name?: string | null;
+  params?: string[];
   function_signature?: string | null;
   starter_code?: string | null;
   public_test_cases: CodingProblemTestCase[];
@@ -95,7 +98,16 @@ export interface Feedback {
   score: number; // 1-10
   strengths: string[] | null;
   improvements: string[] | null;
+  test_summary?: CodingTestSummary | null;
   created_at: string;
+}
+
+export interface CodingTestSummary {
+  total_tests: number;
+  passed_tests: number;
+  failed_tests: number;
+  pass_rate: number;
+  used_hidden_tests: boolean;
 }
 
 // 6. Analytics
@@ -183,6 +195,31 @@ export interface QuestionFeedbackDetail {
   ai_feedback_text: string | null;
   strengths: string[] | null;
   improvements: string[] | null;
+  test_summary?: CodingTestSummary | null;
+}
+
+export interface RunCodeRequest {
+  question_id: string;
+  response_code: string;
+}
+
+export interface RunCodeCaseResult {
+  input: string;
+  expected_output: string;
+  actual_output: string | null;
+  passed: boolean;
+  error: string | null;
+  runtime_ms: number | null;
+}
+
+export interface RunCodeResponse {
+  question_id: string;
+  total_tests: number;
+  passed_tests: number;
+  failed_tests: number;
+  all_passed: boolean;
+  language: string | null;
+  test_results: RunCodeCaseResult[];
 }
 
 export interface SessionFeedbackResponse {

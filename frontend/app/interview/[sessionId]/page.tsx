@@ -19,8 +19,9 @@ import type {
   AnswerSubmitResponse,
   InterviewSession,
   Question,
+  RunCodeResponse,
 } from "@/types";
-import { getSession, submitAnswer } from "@/lib/api";
+import { getSession, runCode, submitAnswer } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +44,13 @@ interface SessionState {
 interface SubmissionState {
   submitting: boolean;
   isComplete: boolean;
+}
+
+interface RunState {
+  running: boolean;
+  hasRun: boolean;
+  result: RunCodeResponse | null;
+  error: string | null;
 }
 
 function mapProgrammingLanguageToEditorLanguage(
@@ -113,6 +121,13 @@ export default function InterviewSessionPage() {
     isComplete: false,
   });
 
+  const [runState, setRunState] = useState<RunState>({
+    running: false,
+    hasRun: false,
+    result: null,
+    error: null,
+  });
+
   // Editor state
   const [answerText, setAnswerText] = useState("");
   const [codeText, setCodeText] = useState("");
@@ -162,6 +177,13 @@ export default function InterviewSessionPage() {
       if (lastQ?.problem?.starter_code) {
         setCodeText(lastQ.problem.starter_code);
       }
+
+      setRunState({
+        running: false,
+        hasRun: false,
+        result: null,
+        error: null,
+      });
     }
 
     load();
@@ -171,6 +193,25 @@ export default function InterviewSessionPage() {
   const handleSubmit = useCallback(async () => {
     const question = state.currentQuestion;
     if (!question) return;
+
+    const requiresRun =
+      state.session?.interview_type === "coding" &&
+      ["python", "py", ""].includes(
+        String(
+          question.problem?.programming_language ||
+            state.session?.programming_language ||
+            "python",
+        ).toLowerCase(),
+      ) &&
+      Boolean(question.problem?.public_test_cases?.length);
+
+    if (requiresRun && !runState.hasRun) {
+      setState((s) => ({
+        ...s,
+        error: "Run your code at least once before submitting.",
+      }));
+      return;
+    }
 
     setSubmission({ submitting: true, isComplete: false });
     setState((s) => ({ ...s, error: null }));
@@ -217,8 +258,60 @@ export default function InterviewSessionPage() {
       setAnswerText("");
       setCodeText(data.next_question.problem?.starter_code ?? "");
       setSubmission({ submitting: false, isComplete: false });
+      setRunState({
+        running: false,
+        hasRun: false,
+        result: null,
+        error: null,
+      });
     }
-  }, [state.currentQuestion, sessionId, answerText, codeText, router]);
+  }, [state.currentQuestion, state.session?.interview_type, state.session?.programming_language, sessionId, answerText, codeText, router, runState.hasRun]);
+
+  // Run code against public test cases
+  const handleRunCode = useCallback(async () => {
+    const question = state.currentQuestion;
+    if (!question) return;
+
+    if (!codeText.trim()) {
+      setRunState((prev) => ({
+        ...prev,
+        error: "Write code before running tests.",
+      }));
+      return;
+    }
+
+    setRunState({
+      running: true,
+      hasRun: false,
+      result: null,
+      error: null,
+    });
+
+    const res = await runCode(sessionId, {
+      question_id: question.id,
+      response_code: codeText,
+    });
+
+    if (!res.ok) {
+      const msg = (res.data as unknown as { detail?: string }).detail ??
+        "Failed to run tests. Please try again.";
+
+      setRunState({
+        running: false,
+        hasRun: false,
+        result: null,
+        error: msg,
+      });
+      return;
+    }
+
+    setRunState({
+      running: false,
+      hasRun: true,
+      result: res.data,
+      error: null,
+    });
+  }, [state.currentQuestion, sessionId, codeText]);
 
   // Skip question (submit empty)
   const handleSkip = useCallback(async () => {
@@ -261,6 +354,12 @@ export default function InterviewSessionPage() {
       setAnswerText("");
       setCodeText(data.next_question.problem?.starter_code ?? "");
       setSubmission({ submitting: false, isComplete: false });
+      setRunState({
+        running: false,
+        hasRun: false,
+        result: null,
+        error: null,
+      });
     }
   }, [state.currentQuestion, sessionId, router]);
 
@@ -295,6 +394,16 @@ export default function InterviewSessionPage() {
   }
 
   const { session, currentQuestion, questionIndex, totalQuestions } = state;
+  const runnerLanguage = (
+    currentQuestion?.problem?.programming_language ||
+    session?.programming_language ||
+    "python"
+  ).toLowerCase();
+  const runnerSupported = runnerLanguage === "python" || runnerLanguage === "py";
+  const requiresRunBeforeSubmit =
+    session?.interview_type === "coding" &&
+    runnerSupported &&
+    Boolean(currentQuestion?.problem?.public_test_cases?.length);
 
   return (
     <ProtectedRoute>
@@ -462,6 +571,19 @@ export default function InterviewSessionPage() {
 
           {/* Action buttons */}
           <div className="flex flex-wrap items-center gap-3">
+            {runnerSupported && currentQuestion?.problem?.public_test_cases?.length ? (
+              <Button
+                variant="outline"
+                size="lg"
+                isLoading={runState.running}
+                loadingText="Running..."
+                onClick={handleRunCode}
+                disabled={submission.submitting}
+              >
+                Run Code
+              </Button>
+            ) : null}
+
             <Button
               variant="primary"
               size="lg"
@@ -482,6 +604,65 @@ export default function InterviewSessionPage() {
               Skip Question {"->"}
             </Button>
           </div>
+
+          {requiresRunBeforeSubmit && !runState.hasRun && (
+            <p className="text-xs text-warning">
+              Run your solution once before submit so you can catch obvious bugs early.
+            </p>
+          )}
+
+          {session?.interview_type === "coding" && !runnerSupported && (
+            <p className="text-xs text-foreground-muted">
+              Run Code is currently available for Python questions only.
+            </p>
+          )}
+
+          {runState.error && (
+            <div className="rounded-md border border-danger/30 bg-danger-light px-3 py-2 text-sm text-danger">
+              {runState.error}
+            </div>
+          )}
+
+          {runState.result && (
+            <div className="rounded-lg border border-surface-border bg-surface-card/60 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-foreground">Run Results</h3>
+                <p className={cn(
+                  "text-xs font-medium",
+                  runState.result.all_passed ? "text-success" : "text-warning",
+                )}>
+                  Passed {runState.result.passed_tests}/{runState.result.total_tests}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                {runState.result.test_results.map((test, idx) => (
+                  <div
+                    key={`${test.input}-${idx}`}
+                    className="rounded-md border border-surface-border bg-surface/60 p-3"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-foreground-muted">Test {idx + 1}</p>
+                      <p className={cn("text-xs font-semibold", test.passed ? "text-success" : "text-danger")}>
+                        {test.passed ? "PASS" : "FAIL"}
+                      </p>
+                    </div>
+                    <p className="mt-1 font-mono text-xs text-foreground">Input: {test.input}</p>
+                    <p className="mt-1 font-mono text-xs text-foreground">Expected: {test.expected_output}</p>
+                    {test.actual_output && (
+                      <p className="mt-1 font-mono text-xs text-foreground">Actual: {test.actual_output}</p>
+                    )}
+                    {typeof test.runtime_ms === "number" && (
+                      <p className="mt-1 text-[11px] text-foreground-muted">Runtime: {test.runtime_ms.toFixed(2)} ms</p>
+                    )}
+                    {test.error && (
+                      <p className="mt-1 text-[11px] text-danger">{test.error}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
       )}
 

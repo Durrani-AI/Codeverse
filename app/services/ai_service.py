@@ -189,6 +189,7 @@ def _normalize_coding_problem(
 ) -> dict[str, Any]:
     """Normalize and validate a structured coding problem payload."""
     title = str(raw.get("title") or "Coding Problem").strip()
+    problem_id = str(raw.get("problem_id") or "").strip() or re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
     statement = str(raw.get("statement") or raw.get("question") or "").strip()
     if not statement:
         raise ValueError("Structured coding problem is missing 'statement'.")
@@ -237,10 +238,13 @@ def _normalize_coding_problem(
 
     return {
         "title": title,
+        "problem_id": problem_id,
         "statement": statement,
         "difficulty": difficulty,
         "constraints": constraints,
         "examples": examples,
+        "function_name": str(raw.get("function_name") or "").strip() or None,
+        "params": [str(item).strip() for item in (raw.get("params") or []) if str(item).strip()],
         "function_signature": str(raw.get("function_signature") or "").strip() or None,
         "starter_code": str(raw.get("starter_code") or "").strip() or None,
         "public_test_cases": tests,
@@ -374,12 +378,15 @@ async def generate_coding_problem(
         f"{_build_previous_context(previous_questions)}"
         "Return ONLY valid JSON with this exact shape:\n"
         "{\n"
+        "  \"problem_id\": \"...\",\n"
         "  \"title\": \"...\",\n"
         "  \"statement\": \"...\",\n"
         "  \"constraints\": [\"...\", \"...\"],\n"
         "  \"examples\": [\n"
         "    {\"input\": \"...\", \"output\": \"...\", \"explanation\": \"...\"}\n"
         "  ],\n"
+        "  \"function_name\": \"...\",\n"
+        "  \"params\": [\"param1\", \"param2\"],\n"
         "  \"function_signature\": \"...\",\n"
         "  \"starter_code\": \"...\",\n"
         "  \"public_test_cases\": [\n"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+import re
 from typing import Any
 
 PROBLEM_BANK: list[dict[str, Any]] = [
@@ -190,6 +191,49 @@ PROBLEM_BANK: list[dict[str, Any]] = [
     },
 ]
 
+_HIDDEN_TESTS_BY_PROBLEM_ID: dict[str, list[dict[str, str]]] = {
+    "two-sum": [
+        {"input": "[1,5,3,7], 8", "expected_output": "[0,3]"},
+        {"input": "[-3,4,3,90], 0", "expected_output": "[0,2]"},
+    ],
+    "valid-parentheses": [
+        {"input": "\"([{}])\"", "expected_output": "true"},
+        {"input": "\"([)]\"", "expected_output": "false"},
+    ],
+    "longest-substring-without-repeating-characters": [
+        {"input": "\"\"", "expected_output": "0"},
+        {"input": "\"dvdf\"", "expected_output": "3"},
+    ],
+    "group-anagrams": [
+        {
+            "input": "[\"abc\",\"bca\",\"cab\",\"foo\",\"ofo\"]",
+            "expected_output": "[[\"abc\",\"bca\",\"cab\"],[\"foo\",\"ofo\"]]",
+        },
+        {"input": "[\"a\"]", "expected_output": "[[\"a\"]]"},
+    ],
+    "merge-intervals": [
+        {"input": "[[1,4],[0,2],[3,5]]", "expected_output": "[[0,5]]"},
+        {"input": "[[1,4],[5,6]]", "expected_output": "[[1,4],[5,6]]"},
+    ],
+    "lru-cache": [
+        {
+            "input": "capacity=2; operations=put(2,1), put(2,2), get(2), put(1,1), put(4,1), get(2)",
+            "expected_output": "[2,-1]",
+        }
+    ],
+}
+
+
+def _problem_id_from_title(title: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", title.strip().lower()).strip("-")
+    return slug or "coding-problem"
+
+
+def get_problem_hidden_tests(problem_id: str | None) -> list[dict[str, str]]:
+    if not problem_id:
+        return []
+    return list(_HIDDEN_TESTS_BY_PROBLEM_ID.get(problem_id, []))
+
 
 def _language_starter_code(function_name: str, params: list[str], language: str) -> tuple[str, str]:
     joined = ", ".join(params)
@@ -288,6 +332,7 @@ def pick_coding_problem(
         return None
 
     problem = random.choice(pool).copy()
+    problem_id = _problem_id_from_title(problem["title"])
     signature, starter = _language_starter_code(
         problem["function_name"],
         problem["params"],
@@ -296,10 +341,13 @@ def pick_coding_problem(
 
     return {
         "title": problem["title"],
+        "problem_id": problem_id,
         "statement": problem["statement"],
         "difficulty": problem["difficulty"],
         "constraints": list(problem["constraints"]),
         "examples": list(problem["examples"]),
+        "function_name": problem["function_name"],
+        "params": list(problem["params"]),
         "function_signature": signature,
         "starter_code": starter,
         "public_test_cases": list(problem["public_test_cases"]),

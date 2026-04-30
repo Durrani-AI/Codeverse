@@ -150,6 +150,7 @@ async def _run_column_migrations() -> None:
         # Feedbacks
         ("feedbacks", "strengths", "JSON"),
         ("feedbacks", "improvements", "JSON"),
+        ("feedbacks", "test_summary", "JSON"),
     ]
 
     async with engine.begin() as conn:
