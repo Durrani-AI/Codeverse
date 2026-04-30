@@ -18,6 +18,7 @@ from functools import wraps
 from typing import Any, Callable, Coroutine, List, Optional
 
 from app.config import settings
+from app.services.problem_bank import pick_coding_problem
 
 logger = logging.getLogger(__name__)
 
@@ -180,6 +181,77 @@ def _extract_json(text: str) -> dict:
     raise ValueError(f"Could not extract JSON from LLM output: {text[:200]}")
 
 
+def _normalize_coding_problem(
+    raw: dict,
+    *,
+    difficulty: str,
+    programming_language: str | None,
+) -> dict[str, Any]:
+    """Normalize and validate a structured coding problem payload."""
+    title = str(raw.get("title") or "Coding Problem").strip()
+    statement = str(raw.get("statement") or raw.get("question") or "").strip()
+    if not statement:
+        raise ValueError("Structured coding problem is missing 'statement'.")
+
+    constraints_raw = raw.get("constraints") or []
+    constraints = [
+        str(item).strip() for item in constraints_raw
+        if str(item).strip()
+    ]
+
+    examples = []
+    for item in (raw.get("examples") or []):
+        if not isinstance(item, dict):
+            continue
+        inp = str(item.get("input") or "").strip()
+        out = str(item.get("output") or "").strip()
+        if not inp or not out:
+            continue
+        examples.append(
+            {
+                "input": inp,
+                "output": out,
+                "explanation": str(item.get("explanation") or "").strip() or None,
+            }
+        )
+
+    tests = []
+    for item in (raw.get("public_test_cases") or raw.get("test_cases") or []):
+        if not isinstance(item, dict):
+            continue
+        inp = str(item.get("input") or "").strip()
+        out = str(item.get("expected_output") or item.get("output") or "").strip()
+        if not inp or not out:
+            continue
+        tests.append(
+            {
+                "input": inp,
+                "expected_output": out,
+            }
+        )
+
+    tags = [
+        str(item).strip() for item in (raw.get("tags") or [])
+        if str(item).strip()
+    ]
+
+    return {
+        "title": title,
+        "statement": statement,
+        "difficulty": difficulty,
+        "constraints": constraints,
+        "examples": examples,
+        "function_signature": str(raw.get("function_signature") or "").strip() or None,
+        "starter_code": str(raw.get("starter_code") or "").strip() or None,
+        "public_test_cases": tests,
+        "tags": tags,
+        "expected_time_complexity": str(raw.get("expected_time_complexity") or "").strip() or None,
+        "expected_space_complexity": str(raw.get("expected_space_complexity") or "").strip() or None,
+        "programming_language": (programming_language or "python").strip().lower(),
+        "source": str(raw.get("source") or "ai").strip() or "ai",
+    }
+
+
 async def _chat(
     messages: list[dict[str, str]],
     *,
@@ -272,6 +344,75 @@ async def _chat_ollama(
 
 
 # --- Public API ---
+
+@with_retry()
+async def generate_coding_problem(
+    *,
+    difficulty: str,
+    topic: str,
+    programming_language: str | None,
+    previous_questions: list[str] | None = None,
+) -> dict[str, Any]:
+    """Generate a structured LeetCode-style coding problem.
+
+    Uses curated problems first. Falls back to strict JSON generation from the LLM.
+    """
+
+    curated = pick_coding_problem(
+        difficulty=difficulty,
+        topic=topic,
+        programming_language=programming_language,
+        previous_questions=previous_questions,
+    )
+    if curated:
+        return curated
+
+    language = (programming_language or "Python").strip()
+    prompt = (
+        f"Create one {difficulty} LeetCode-style coding problem for topic: {topic}.\n"
+        f"Language context: {language}.\n"
+        f"{_build_previous_context(previous_questions)}"
+        "Return ONLY valid JSON with this exact shape:\n"
+        "{\n"
+        "  \"title\": \"...\",\n"
+        "  \"statement\": \"...\",\n"
+        "  \"constraints\": [\"...\", \"...\"],\n"
+        "  \"examples\": [\n"
+        "    {\"input\": \"...\", \"output\": \"...\", \"explanation\": \"...\"}\n"
+        "  ],\n"
+        "  \"function_signature\": \"...\",\n"
+        "  \"starter_code\": \"...\",\n"
+        "  \"public_test_cases\": [\n"
+        "    {\"input\": \"...\", \"expected_output\": \"...\"}\n"
+        "  ],\n"
+        "  \"tags\": [\"array\", \"hash map\"],\n"
+        "  \"expected_time_complexity\": \"...\",\n"
+        "  \"expected_space_complexity\": \"...\"\n"
+        "}\n"
+        "Rules: no prose, no markdown, no code fences."
+    )
+
+    raw = await _chat(
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You generate high-quality coding interview problems in strict JSON. "
+                    "Problems must include constraints, examples, and runnable public test cases."
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.25,
+        top_p=0.85,
+        num_predict=1024,
+    )
+    parsed = _extract_json(raw)
+    return _normalize_coding_problem(
+        parsed,
+        difficulty=difficulty,
+        programming_language=programming_language,
+    )
 
 @with_retry()
 async def generate_interview_question(

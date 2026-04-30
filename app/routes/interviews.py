@@ -43,6 +43,7 @@ from app.schemas import (
 )
 from app.services.ai_service import (
     evaluate_answer,
+    generate_coding_problem,
     generate_followup_question,
     generate_interview_question,
     generate_session_feedback,
@@ -129,16 +130,30 @@ async def start_interview(
         logger.error("DB error creating session: %s", exc, exc_info=True)
         raise HTTPException(500, f"Failed to create interview session: {exc}")
 
-    # Generate the first question via LLM
+    # Generate the first question
     try:
         previous = await _previous_questions_for(session.id, db)
-        question_text = await generate_interview_question(
-            interview_type=request.interview_type.value,
-            difficulty=request.difficulty_level.value,
-            topic=request.topic,
-            programming_language=request.programming_language,
-            previous_questions=previous,
-        )
+        problem_payload = None
+
+        if request.interview_type.value == "coding":
+            problem_payload = await generate_coding_problem(
+                difficulty=request.difficulty_level.value,
+                topic=request.topic,
+                programming_language=request.programming_language,
+                previous_questions=previous,
+            )
+            question_text = (
+                f"{problem_payload['title']}\n\n"
+                f"{problem_payload['statement']}"
+            )
+        else:
+            question_text = await generate_interview_question(
+                interview_type=request.interview_type.value,
+                difficulty=request.difficulty_level.value,
+                topic=request.topic,
+                programming_language=request.programming_language,
+                previous_questions=previous,
+            )
     except ConnectionError as exc:
         await db.rollback()
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc))
@@ -152,6 +167,7 @@ async def start_interview(
             session_id=session.id,
             question_text=question_text,
             question_type=request.interview_type.value,
+            problem_data=problem_payload,
         )
         db.add(question)
         await db.commit()
@@ -266,18 +282,34 @@ async def submit_answer(
     if not is_complete:
         try:
             previous = await _previous_questions_for(session.id, db)
-            next_q_text = await generate_followup_question(
-                original_question=question.question_text,
-                candidate_answer=body.response_text,
-                interview_type=session.interview_type.value,
-                difficulty=session.difficulty_level.value,
-                topic=session.topic or "General",
-                programming_language=session.programming_language,
-            )
+            next_problem_payload = None
+
+            if session.interview_type.value == "coding":
+                next_problem_payload = await generate_coding_problem(
+                    difficulty=session.difficulty_level.value,
+                    topic=session.topic or "General",
+                    programming_language=session.programming_language,
+                    previous_questions=previous,
+                )
+                next_q_text = (
+                    f"{next_problem_payload['title']}\n\n"
+                    f"{next_problem_payload['statement']}"
+                )
+            else:
+                next_q_text = await generate_followup_question(
+                    original_question=question.question_text,
+                    candidate_answer=body.response_text,
+                    interview_type=session.interview_type.value,
+                    difficulty=session.difficulty_level.value,
+                    topic=session.topic or "General",
+                    programming_language=session.programming_language,
+                )
+
             next_q = Question(
                 session_id=session.id,
                 question_text=next_q_text,
                 question_type=session.interview_type.value,
+                problem_data=next_problem_payload,
             )
             db.add(next_q)
             await db.flush()

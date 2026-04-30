@@ -144,6 +144,7 @@ async def _run_column_migrations() -> None:
         ("interview_sessions", "completed_at", "TIMESTAMP"),
         # Questions
         ("questions", "question_type", "VARCHAR(20) DEFAULT 'coding'"),
+        ("questions", "problem_data", "JSON"),
         # UserResponses
         ("user_responses", "response_code", "TEXT"),
         # Feedbacks

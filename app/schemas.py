@@ -321,6 +321,39 @@ class InterviewStartResponse(BaseModel):
 
 # --- Question schemas ---
 
+class CodingProblemExample(BaseModel):
+    """One input/output example shown in the problem statement."""
+
+    input: str
+    output: str
+    explanation: Optional[str] = None
+
+
+class CodingProblemTestCase(BaseModel):
+    """One public test case candidates can run before submission."""
+
+    input: str
+    expected_output: str
+
+
+class CodingProblemPayload(BaseModel):
+    """LeetCode-style structured coding problem contract."""
+
+    title: str
+    statement: str
+    difficulty: Optional[str] = None
+    constraints: List[str] = Field(default_factory=list)
+    examples: List[CodingProblemExample] = Field(default_factory=list)
+    function_signature: Optional[str] = None
+    starter_code: Optional[str] = None
+    public_test_cases: List[CodingProblemTestCase] = Field(default_factory=list)
+    tags: List[str] = Field(default_factory=list)
+    expected_time_complexity: Optional[str] = None
+    expected_space_complexity: Optional[str] = None
+    programming_language: Optional[str] = None
+    source: Optional[str] = None
+
+
 class QuestionResponse(BaseModel):
     """A single interview question with metadata."""
 
@@ -332,9 +365,13 @@ class QuestionResponse(BaseModel):
         examples=["Write a function that reverses a linked list in-place."],
     )
     question_type: QuestionType = Field(..., examples=["coding"])
+    problem: Optional[CodingProblemPayload] = Field(
+        default=None,
+        validation_alias="problem_data",
+    )
     asked_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 QuestionOut = QuestionResponse

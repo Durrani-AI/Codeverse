@@ -8,6 +8,33 @@ export type SessionStatus = "in_progress" | "completed" | "cancelled";
 export type QuestionType = "coding" | "behavioral" | "system_design" | "follow_up";
 export type ImprovementTrend = "improving" | "stable" | "declining" | "insufficient_data";
 
+export interface CodingProblemExample {
+  input: string;
+  output: string;
+  explanation?: string | null;
+}
+
+export interface CodingProblemTestCase {
+  input: string;
+  expected_output: string;
+}
+
+export interface CodingProblemPayload {
+  title: string;
+  statement: string;
+  difficulty?: string | null;
+  constraints: string[];
+  examples: CodingProblemExample[];
+  function_signature?: string | null;
+  starter_code?: string | null;
+  public_test_cases: CodingProblemTestCase[];
+  tags: string[];
+  expected_time_complexity?: string | null;
+  expected_space_complexity?: string | null;
+  programming_language?: string | null;
+  source?: string | null;
+}
+
 // 1. User
 
 export interface User {
@@ -44,6 +71,7 @@ export interface Question {
   session_id: string;
   question_text: string;
   question_type: QuestionType;
+  problem?: CodingProblemPayload | null;
   asked_at: string;
 }
 

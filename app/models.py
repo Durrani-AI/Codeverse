@@ -137,6 +137,7 @@ class Question(Base):
     question_type = Column(
         SQLEnum(QuestionType), default=QuestionType.CODING, nullable=False
     )
+    problem_data = Column(JSON, nullable=True)
     asked_at = Column(DateTime, default=func.now(), nullable=False)
 
     session = relationship("InterviewSession", back_populates="questions")

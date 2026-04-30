@@ -158,6 +158,10 @@ export default function InterviewSessionPage() {
       if (session.interview_type === "coding" && session.programming_language) {
         setLanguage(mapProgrammingLanguageToEditorLanguage(session.programming_language));
       }
+
+      if (lastQ?.problem?.starter_code) {
+        setCodeText(lastQ.problem.starter_code);
+      }
     }
 
     load();
@@ -211,7 +215,7 @@ export default function InterviewSessionPage() {
           : s.totalQuestions,
       }));
       setAnswerText("");
-      setCodeText("");
+      setCodeText(data.next_question.problem?.starter_code ?? "");
       setSubmission({ submitting: false, isComplete: false });
     }
   }, [state.currentQuestion, sessionId, answerText, codeText, router]);
@@ -255,7 +259,7 @@ export default function InterviewSessionPage() {
         questionIndex: s.questionIndex + 1,
       }));
       setAnswerText("");
-      setCodeText("");
+      setCodeText(data.next_question.problem?.starter_code ?? "");
       setSubmission({ submitting: false, isComplete: false });
     }
   }, [state.currentQuestion, sessionId, router]);
@@ -340,10 +344,84 @@ export default function InterviewSessionPage() {
         <section className="question-card space-y-2">
           <div className="flex items-center gap-2 text-xs text-foreground-muted">
             <Badge variant="default">{currentQuestion.question_type.replace("_", " ")}</Badge>
+            {currentQuestion.problem?.source && (
+              <Badge variant="success">{currentQuestion.problem.source}</Badge>
+            )}
           </div>
-          <p className="text-foreground text-base leading-relaxed whitespace-pre-wrap">
-            {currentQuestion.question_text}
-          </p>
+
+          {currentQuestion.problem ? (
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold text-foreground">
+                  {currentQuestion.problem.title}
+                </h2>
+                <p className="text-foreground text-base leading-relaxed whitespace-pre-wrap">
+                  {currentQuestion.problem.statement}
+                </p>
+              </div>
+
+              {currentQuestion.problem.function_signature && (
+                <div className="rounded-md border border-surface-border bg-surface-card/60 px-3 py-2">
+                  <p className="text-xs uppercase tracking-wider text-foreground-muted">Function Signature</p>
+                  <p className="mt-1 font-mono text-sm text-foreground whitespace-pre-wrap">
+                    {currentQuestion.problem.function_signature}
+                  </p>
+                </div>
+              )}
+
+              {currentQuestion.problem.constraints.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-wider text-foreground-muted">Constraints</p>
+                  <ul className="list-disc space-y-1 pl-5 text-sm text-foreground-muted">
+                    {currentQuestion.problem.constraints.map((item, idx) => (
+                      <li key={`${item}-${idx}`}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {currentQuestion.problem.examples.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-wider text-foreground-muted">Examples</p>
+                  <div className="space-y-3">
+                    {currentQuestion.problem.examples.map((example, idx) => (
+                      <div
+                        key={`${example.input}-${idx}`}
+                        className="rounded-md border border-surface-border bg-surface-card/50 p-3"
+                      >
+                        <p className="font-mono text-xs text-foreground">Input: {example.input}</p>
+                        <p className="mt-1 font-mono text-xs text-foreground">Output: {example.output}</p>
+                        {example.explanation && (
+                          <p className="mt-1 text-xs text-foreground-muted">Explanation: {example.explanation}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {currentQuestion.problem.public_test_cases.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-wider text-foreground-muted">Public Test Cases</p>
+                  <div className="space-y-2">
+                    {currentQuestion.problem.public_test_cases.map((test, idx) => (
+                      <div
+                        key={`${test.input}-${idx}`}
+                        className="rounded-md border border-surface-border bg-surface-card/50 p-3"
+                      >
+                        <p className="font-mono text-xs text-foreground">Input: {test.input}</p>
+                        <p className="mt-1 font-mono text-xs text-foreground">Expected: {test.expected_output}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-foreground text-base leading-relaxed whitespace-pre-wrap">
+              {currentQuestion.question_text}
+            </p>
+          )}
         </section>
       )}
 
