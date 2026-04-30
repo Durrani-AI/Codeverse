@@ -72,22 +72,34 @@ function mapProgrammingLanguageToEditorLanguage(
 // Elapsed-time hook
 
 function useElapsedTime(startedAt: string | null, active: boolean): string {
-  const [elapsed, setElapsed] = useState("00:00");
+  const [elapsed, setElapsed] = useState("00:00:00");
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
 
   useEffect(() => {
     if (!startedAt || !active) return;
 
+    const toStartMs = (value: string): number => {
+      const trimmed = value.trim();
+      const withT = trimmed.includes(" ") ? trimmed.replace(" ", "T") : trimmed;
+      const hasTimezone = /([zZ]|[+-]\d{2}:\d{2})$/.test(withT);
+      const normalized = hasTimezone ? withT : `${withT}Z`;
+      return Date.parse(normalized);
+    };
+
+    const startMs = toStartMs(startedAt);
+    if (Number.isNaN(startMs)) {
+      setElapsed("00:00:00");
+      return;
+    }
+
     function tick() {
-      const diff = Math.max(0, Date.now() - new Date(startedAt!).getTime());
+      const diff = Math.max(0, Date.now() - startMs);
       const totalSec = Math.floor(diff / 1000);
       const h = Math.floor(totalSec / 3600);
       const m = Math.floor((totalSec % 3600) / 60);
       const s = totalSec % 60;
       setElapsed(
-        h > 0
-          ? `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
-          : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`,
+        `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`,
       );
     }
 
