@@ -1,16 +1,21 @@
 import { withSentryConfig } from "@sentry/nextjs";
 
+const backendApiBase = (
+  process.env.RENDER_API_BASE_URL ??
+  (process.env.NODE_ENV === "production"
+    ? "https://ai-interview-backend-3agx.onrender.com/api/v1"
+    : "http://127.0.0.1:8001/api/v1")
+).replace(/\/+$/, "");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* Proxy /api requests to the FastAPI backend during LOCAL development.
-     In production (Vercel), NEXT_PUBLIC_API_URL points directly to Render. */
+  /* Always proxy API requests through Next.js so users only use one public URL.
+     Vercel serves frontend and forwards /api/v1/* to Render backend. */
   async rewrites() {
-    // Only apply proxy in development (Vercel sets VERCEL env var)
-    if (process.env.VERCEL) return [];
     return [
       {
-        source: "/api/:path*",
-        destination: "http://127.0.0.1:8001/api/:path*",
+        source: "/api/v1/:path*",
+        destination: `${backendApiBase}/:path*`,
       },
     ];
   },

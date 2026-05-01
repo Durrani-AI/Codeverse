@@ -35,15 +35,9 @@ import type {
 
 // Configuration
 
-const DEFAULT_DEV_API_URL = "http://127.0.0.1:8000/api/v1";
-const DEFAULT_PROD_API_URL =
-  "https://ai-interview-backend-3agx.onrender.com/api/v1";
-
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  (process.env.NODE_ENV === "production"
-    ? DEFAULT_PROD_API_URL
-    : DEFAULT_DEV_API_URL);
+// Single public URL mode:
+// Browser always calls same-origin /api/v1, and Next.js rewrites proxy to Render.
+const BASE_URL = "/api/v1";
 
 // Token helpers (in-memory fallback; primary auth is HttpOnly cookie)
 
