@@ -41,7 +41,7 @@ export default function SettingsPage() {
                 className={`w-full text-left rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                   activeTab === key
                     ? "bg-brand-500/10 text-brand-400"
-                    : "text-foreground-muted hover:text-foreground hover:bg-white/[0.04]"
+                    : "text-foreground-muted hover:text-foreground hover:bg-surface-border/35"
                 }`}
               >
                 {label}

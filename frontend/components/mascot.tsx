@@ -102,7 +102,7 @@ export default function Mascot({ username }: MascotProps) {
           <rect x="96" y="38" width="8" height="20" rx="4" fill="#8b5cf6" opacity="0.6" />
 
           {/* Body */}
-          <rect x="32" y="82" width="56" height="30" rx="10" fill="#18181f" stroke="#8b5cf6" strokeWidth="2" />
+          <rect x="32" y="82" width="56" height="30" rx="10" style={{ fill: "rgb(var(--surface-card-hover))" }} stroke="#8b5cf6" strokeWidth="2" />
 
           {/* Chest emblem - </> */}
           <text x="60" y="102" textAnchor="middle" fill="#8b5cf6" fontSize="14" fontFamily="monospace" fontWeight="bold">&lt;/&gt;</text>
@@ -117,7 +117,7 @@ export default function Mascot({ username }: MascotProps) {
           style={{
             borderTop: "6px solid transparent",
             borderBottom: "6px solid transparent",
-            borderRight: "8px solid #1e1e2a",
+            borderRight: "8px solid rgb(var(--surface-border))",
           }}
         />
         <div
@@ -125,7 +125,7 @@ export default function Mascot({ username }: MascotProps) {
           style={{
             borderTop: "5px solid transparent",
             borderBottom: "5px solid transparent",
-            borderRight: "7px solid #111118",
+            borderRight: "7px solid rgb(var(--surface-card))",
           }}
         />
 

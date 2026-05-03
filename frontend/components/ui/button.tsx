@@ -42,7 +42,7 @@ const variantClasses: Record<ButtonVariant, string> = {
     "bg-transparent text-foreground border border-surface-border " +
     "hover:border-brand-400/50 hover:text-brand-300 hover:shadow-[0_0_16px_rgba(139,92,246,0.08)] focus-visible:ring-brand-500",
   ghost:
-    "bg-transparent text-foreground-muted hover:bg-white/[0.04] " +
+    "bg-transparent text-foreground-muted hover:bg-surface-border/35 " +
     "hover:text-foreground focus-visible:ring-brand-500",
   danger:
     "bg-danger/10 text-danger border border-danger/30 hover:bg-danger/20 " +

@@ -7,6 +7,8 @@
 import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 
+import { themeInitScript } from "@/lib/theme";
+
 interface GlobalErrorProps {
   error: Error & { digest?: string };
   reset: () => void;
@@ -18,12 +20,15 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
   }, [error]);
 
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center px-6">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
+      <body className="min-h-screen bg-surface text-foreground flex items-center justify-center px-6">
         <div className="text-center space-y-6 max-w-md">
-          <div className="w-16 h-16 mx-auto rounded-full bg-red-500/10 flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto rounded-full bg-danger-light flex items-center justify-center">
             <svg
-              className="w-8 h-8 text-red-400"
+              className="w-8 h-8 text-danger"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -41,19 +46,19 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
             <h1 className="text-2xl font-bold tracking-tight">
               Something went wrong
             </h1>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-foreground-muted">
               An unexpected error occurred. The team has been notified
               automatically.
             </p>
             {error.digest && (
-              <p className="text-xs text-gray-600 font-mono">
+              <p className="text-xs text-foreground-muted/70 font-mono">
                 Error ID: {error.digest}
               </p>
             )}
           </div>
           <button
             onClick={reset}
-            className="px-5 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 transition-colors text-sm font-medium"
+            className="px-5 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 transition-colors text-sm font-medium text-white"
           >
             Try again
           </button>

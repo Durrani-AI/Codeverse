@@ -16,7 +16,7 @@ interface SkeletonProps {
 }
 
 const baseClasses =
-  "relative overflow-hidden bg-surface-card before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/[0.04] before:to-transparent before:animate-[shimmer_2s_ease-in-out_infinite]";
+  "relative overflow-hidden bg-surface-card before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-foreground/10 before:to-transparent before:animate-[shimmer_2s_ease-in-out_infinite]";
 
 const variantClasses = {
   line: "rounded",

@@ -25,14 +25,14 @@ const config: Config = {
           900: "#4c1d95",
           950: "#2e1065",
         },
-        /* Deep-dark surfaces*/
+        /* Theme surfaces */
         surface: {
-          DEFAULT:     "#08080d",  /* page background - near-black */
-          alt:         "#0e0e14",  /* slightly lifted bg (navbar, sidebar) */
-          card:        "#111118",  /* card / panel bg */
-          "card-hover":"#18181f",
-          input:       "#0c0c12",  /* input fields */
-          border:      "#1e1e2a",  /* subtle border */
+          DEFAULT:      "rgb(var(--surface) / <alpha-value>)",
+          alt:          "rgb(var(--surface-alt) / <alpha-value>)",
+          card:         "rgb(var(--surface-card) / <alpha-value>)",
+          "card-hover": "rgb(var(--surface-card-hover) / <alpha-value>)",
+          input:        "rgb(var(--surface-input) / <alpha-value>)",
+          border:       "rgb(var(--surface-border) / <alpha-value>)",
         },
         /* Semantic colours*/
         success: {
@@ -49,8 +49,8 @@ const config: Config = {
         },
         /* Text*/
         foreground: {
-          DEFAULT: "#e8e8ed",  /* primary text - crisp white-ish */
-          muted:   "#71717a",  /* subdued descriptive text */
+          DEFAULT: "rgb(var(--foreground) / <alpha-value>)",
+          muted:   "rgb(var(--foreground-muted) / <alpha-value>)",
         },
       },
       fontFamily: {

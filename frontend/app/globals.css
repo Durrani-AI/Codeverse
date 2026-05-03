@@ -3,22 +3,35 @@
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════════════════════
-  Codeverse - Premium Dark Theme
-   Inspired by Bending Spoons Fellowship aesthetic
+  Codeverse - Shared Theme Tokens
+   Dark + light mode via HTML class toggle
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    --background: #08080d;
-    --foreground: #e8e8ed;
-    --card:       #111118;
-    --card-hover: #18181f;
-    --border:     #1e1e2a;
-    --input:      #0c0c12;
-    --muted:      #71717a;
-    --primary:    #8b5cf6;
-    --primary-hover: #a78bfa;
-    --glow:       rgba(139, 92, 246, 0.15);
+    --surface: 248 250 252;
+    --surface-alt: 255 255 255;
+    --surface-card: 255 255 255;
+    --surface-card-hover: 243 244 246;
+    --surface-input: 255 255 255;
+    --surface-border: 226 232 240;
+    --foreground: 15 23 42;
+    --foreground-muted: 100 116 139;
+    --glass-bg: 255 255 255;
+    --glass-border: 148 163 184;
+  }
+
+  html.dark {
+    --surface: 8 8 13;
+    --surface-alt: 14 14 20;
+    --surface-card: 17 17 24;
+    --surface-card-hover: 24 24 31;
+    --surface-input: 12 12 18;
+    --surface-border: 30 30 42;
+    --foreground: 232 232 237;
+    --foreground-muted: 113 113 122;
+    --glass-bg: 255 255 255;
+    --glass-border: 255 255 255;
   }
 
   * {
@@ -26,8 +39,12 @@
   }
 
   html {
-    color-scheme: dark;
+    color-scheme: light;
     scroll-behavior: smooth;
+  }
+
+  html.dark {
+    color-scheme: dark;
   }
 
   body {
@@ -49,7 +66,7 @@
     @apply bg-surface-border rounded-full;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #3a3a4e;
+    background: rgb(var(--foreground-muted) / 0.45);
   }
 }
 
@@ -130,7 +147,7 @@
   }
   .btn-ghost {
     @apply btn bg-transparent text-foreground-muted
-           hover:text-foreground hover:bg-white/[0.03];
+           hover:text-foreground hover:bg-surface-border/35;
   }
   .btn-sm {
     @apply px-3.5 py-1.5 text-xs;
@@ -151,7 +168,9 @@
 
   /* ── Glass card (for special sections) ──────────────────────────────── */
   .glass {
-    @apply bg-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded;
+    @apply rounded border backdrop-blur-xl;
+    background-color: rgb(var(--glass-bg) / 0.58);
+    border-color: rgb(var(--glass-border) / 0.18);
   }
 }
 
