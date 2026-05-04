@@ -336,7 +336,7 @@ export async function getSessionFeedback(sessionId: string) {
 
 /** List all interview sessions for the logged-in user. */
 export async function listSessions() {
-  return request<InterviewSession[]>("GET", "/interviews/");
+  return request<InterviewSession[]>("GET", "/interviews");
 }
 
 /** Get a single interview session by ID. */

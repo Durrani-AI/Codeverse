@@ -581,6 +581,11 @@ async def session_feedback(
 # --- GET / ---
 
 @router.get(
+    "",
+    response_model=list[InterviewSessionOut],
+    include_in_schema=False,
+)
+@router.get(
     "/",
     response_model=list[InterviewSessionOut],
     summary="List interview sessions",
