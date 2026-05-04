@@ -18,7 +18,12 @@
     --foreground: 15 23 42;
     --foreground-muted: 100 116 139;
     --glass-bg: 255 255 255;
+    --glass-bg-alpha: 0.72;
     --glass-border: 148 163 184;
+    --glass-border-alpha: 0.24;
+    --ghost-hover: 226 232 240;
+    --ghost-hover-alpha: 0.75;
+    --scrollbar-thumb-hover: 100 116 139;
   }
 
   html.dark {
@@ -32,6 +37,11 @@
     --foreground-muted: 113 113 122;
     --glass-bg: 255 255 255;
     --glass-border: 255 255 255;
+    --glass-bg-alpha: 0.02;
+    --glass-border-alpha: 0.06;
+    --ghost-hover: 255 255 255;
+    --ghost-hover-alpha: 0.03;
+    --scrollbar-thumb-hover: 58 58 78;
   }
 
   * {
@@ -66,7 +76,7 @@
     @apply bg-surface-border rounded-full;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--foreground-muted) / 0.45);
+    background: rgb(var(--scrollbar-thumb-hover));
   }
 }
 
@@ -147,7 +157,11 @@
   }
   .btn-ghost {
     @apply btn bg-transparent text-foreground-muted
-           hover:text-foreground hover:bg-surface-border/35;
+           hover:text-foreground;
+    background-color: transparent;
+  }
+  .btn-ghost:hover {
+    background-color: rgb(var(--ghost-hover) / var(--ghost-hover-alpha));
   }
   .btn-sm {
     @apply px-3.5 py-1.5 text-xs;
@@ -169,8 +183,8 @@
   /* ── Glass card (for special sections) ──────────────────────────────── */
   .glass {
     @apply rounded border backdrop-blur-xl;
-    background-color: rgb(var(--glass-bg) / 0.58);
-    border-color: rgb(var(--glass-border) / 0.18);
+    background-color: rgb(var(--glass-bg) / var(--glass-bg-alpha));
+    border-color: rgb(var(--glass-border) / var(--glass-border-alpha));
   }
 }
 
