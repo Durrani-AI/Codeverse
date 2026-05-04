@@ -17,6 +17,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -43,22 +44,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const authRequestIdRef = useRef(0);
+
+  const beginAuthRequest = useCallback(() => {
+    authRequestIdRef.current += 1;
+    return authRequestIdRef.current;
+  }, []);
+
+  const isLatestAuthRequest = useCallback((requestId: number) => {
+    return authRequestIdRef.current === requestId;
+  }, []);
 
   // Fetch the current user profile via the HttpOnly cookie (sent automatically)
   const fetchUser = useCallback(async () => {
+    const requestId = beginAuthRequest();
+
     try {
       const res = await getMe();
+      if (!isLatestAuthRequest(requestId)) {
+        return;
+      }
+
       if (res.ok) {
         setUser(res.data);
       } else {
         setUser(null);
       }
     } catch {
+      if (!isLatestAuthRequest(requestId)) {
+        return;
+      }
+
       setUser(null);
     } finally {
-      setIsLoading(false);
+      if (isLatestAuthRequest(requestId)) {
+        setIsLoading(false);
+      }
     }
-  }, []);
+  }, [beginAuthRequest, isLatestAuthRequest]);
 
   // On mount, try to restore the session via HttpOnly cookie
   useEffect(() => {
@@ -69,9 +92,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // we just fetch the profile and navigate to the dashboard.
   const login = useCallback(
     async (): Promise<boolean> => {
+      const requestId = beginAuthRequest();
       setIsLoading(true);
+
       try {
         const res = await getMe();
+        if (!isLatestAuthRequest(requestId)) {
+          return false;
+        }
+
         if (res.ok) {
           setUser(res.data);
           router.replace("/dashboard");
@@ -84,23 +113,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           );
         }
       } catch {
+        if (!isLatestAuthRequest(requestId)) {
+          return false;
+        }
+
         clearToken();
         setUser(null);
         throw new Error(
           "Login succeeded but session could not be restored. Enable third-party cookies or try another browser.",
         );
       } finally {
-        setIsLoading(false);
+        if (isLatestAuthRequest(requestId)) {
+          setIsLoading(false);
+        }
       }
     },
-    [router],
+    [beginAuthRequest, isLatestAuthRequest, router],
   );
 
   const logout = useCallback(async () => {
+    beginAuthRequest();
     await apiLogout();
     setUser(null);
     router.push("/login");
-  }, [router]);
+  }, [beginAuthRequest, router]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
