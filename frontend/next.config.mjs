@@ -9,6 +9,8 @@ const backendApiBase = (
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  skipTrailingSlashRedirect: true,
+
   /* Always proxy API requests through Next.js so users only use one public URL.
      Vercel serves frontend and forwards /api/v1/* to Render backend. */
   async rewrites() {
